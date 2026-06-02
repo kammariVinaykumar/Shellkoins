@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ashta Chemma: Layered Conquest</title>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; background: #2c3e50; color: white; font-family: sans-serif; }
+        .board { display: grid; grid-template-columns: repeat(5, 60px); grid-template-rows: repeat(5, 60px); gap: 5px; margin-top: 20px; }
+        .cell { width: 60px; height: 60px; background: #ecf0f1; border: 1px solid #bdc3c7; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #333; }
+        .safe { background: #f1c40f; } /* Safe Zones */
+        .king { background: #e74c3c; color: white; } /* King Box */
+        .controls { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Ashta Chemma: Layered Conquest</h1>
+    <div id="board" class="board"></div>
+    <div class="controls">
+        <button onclick="rollDice()">Roll Dice (Gavvalu)</button>
+        <p id="status">Player 1 Turn - Roll the dice!</p>
+    </div>
+
+    <script>
+        const boardElement = document.getElementById('board');
+        // 5x5 grid generation
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                // Defining safe zones based on your logic: R1,C3 - R3,C1 - R3,C3 - R3,C5 - R5,C3
+                if ((r===0 && c===2) || (r===2 && c===0) || (r===2 && c===4) || (r===4 && c===2)) cell.classList.add('safe');
+                if (r===2 && c===2) { cell.classList.add('king'); cell.innerText = "KING"; }
+                boardElement.appendChild(cell);
+            }
+        }
+
+        function rollDice() {
+            let roll = Math.floor(Math.random() * 8) + 1;
+            document.getElementById('status').innerText = "You rolled a " + roll;
+            // Gameplay logic will go here
+        }
+    </script>
+</body>
+</html>
