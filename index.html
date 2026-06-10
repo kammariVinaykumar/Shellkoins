@@ -1,43 +1,2157 @@
 <!DOCTYPE html>
-<html>
+<html lang="te">
 <head>
-    <title>Ashta Chemma: Layered Conquest</title>
-    <style>
-        body { display: flex; flex-direction: column; align-items: center; background: #2c3e50; color: white; font-family: sans-serif; }
-        .board { display: grid; grid-template-columns: repeat(5, 60px); grid-template-rows: repeat(5, 60px); gap: 5px; margin-top: 20px; }
-        .cell { width: 60px; height: 60px; background: #ecf0f1; border: 1px solid #bdc3c7; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #333; }
-        .safe { background: #f1c40f; } /* Safe Zones */
-        .king { background: #e74c3c; color: white; } /* King Box */
-        .controls { margin-top: 20px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ShellKoin Mobile</title>
+  <style>
+    :root {
+      --board-bg: #6b3a1f; --board-border: #3d1f08; --cell-white: #fdf8f0; --cell-yellow: #fef3c7;
+      --cell-orange: #fed7aa; --cell-safe: #bbf7d0; --cell-center: #fbbf24; --red: #ef4444;
+      --blue: #3b82f6; --gold: #f59e0b; --panel-card: #2d1a0a; --panel-border: #4a2a10;
+      --text-light: #fef3e2; --text-muted: #c9a87c;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; width: 100vw; height: 100dvh;
+      overflow: hidden; touch-action: manipulation;
+      background: #0a0502; font-family: 'Arial', sans-serif; color: var(--text-light); user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, #2d1a08 0%, #0a0502 100%);
+      padding: 4px;
+    }
+
+    /* ===== AUDIO BTN ===== */
+    #audio-btn {
+      position: fixed; top: 12px; right: 12px; z-index: 5000;
+      background: var(--panel-card); border: 2px solid var(--gold); border-radius: 50%;
+      width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+      color: white; outline: none; transition: transform 0.1s; padding-left: 2px;
+    }
+    #audio-btn:active { transform: scale(0.9); }
+
+    /* ===== SCREENS ===== */
+    #start-screen, #restart-screen, #quit-modal, #setup-screen {
+      position: fixed; inset: 0; background: radial-gradient(ellipse at top, #2d1a08 0%, #0f0804 100%);
+      z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center;
+      transition: opacity 0.3s ease;
+    }
+    #quit-modal { background: rgba(0,0,0,0.85); z-index: 3000; backdrop-filter: blur(4px); }
+    .game-title { font-size: 42px; color: var(--gold); letter-spacing: 2px; text-shadow: 0 0 30px rgba(245,158,11,0.5); margin-bottom: 4px; text-align: center; }
+    .game-subtitle { font-size: 14px; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 40px; text-align: center; }
+    .start-btn {
+      padding: 16px 40px; font-size: 22px; font-weight: 900; color: #1c0a00;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+      border: 3px solid #fcd34d; border-radius: 40px; cursor: pointer; outline: none;
+      box-shadow: 0 10px 30px rgba(245,158,11,0.5), inset 0 4px 0 rgba(255,255,255,0.4);
+      text-transform: uppercase; letter-spacing: 2px; transition: transform 0.1s;
+    }
+    .start-btn:active { transform: scale(0.95); }
+    .secondary-btn { background: linear-gradient(135deg, #4b5563 0%, #374151 50%, #1f2937 100%); border-color: #6b7280; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 4px 0 rgba(255,255,255,0.2); color: #f3f4f6; }
+    .modal-box { background: var(--panel-card); border: 2px solid var(--gold); border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+    .modal-btns { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+    .btn-sm { padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; }
+    .btn-yes { background: #ef4444; color: white; } .btn-no { background: #4b5563; color: white; }
+
+    /* ===== SETUP ===== */
+    #setup-screen { z-index: 2500; opacity: 0; align-items: stretch; justify-content: flex-start; }
+    .setup-content { flex: 1; display: flex; flex-direction: column; padding: 40px 20px; align-items: center; justify-content: center; }
+    .setup-options { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; }
+    .setup-btn {
+      background: var(--panel-card); border: 2px solid var(--gold); border-radius: 12px;
+      padding: 18px; font-size: 18px; color: white; font-weight: bold; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.1s;
+    }
+    .setup-btn:active { transform: scale(0.95); }
+    .setup-btn-red { border-color: #ef4444; } .setup-btn-blue { border-color: #3b82f6; }
+    .setup-btn-5x5 { border-color: #a78bfa; }
+    .setup-btn-7x7 { border-color: var(--gold); }
+    .board-preview {
+      display: inline-flex; flex-direction: column; gap: 3px;
+      background: var(--board-bg); padding: 8px; border-radius: 8px;
+      border: 2px solid var(--board-border); margin-top: 8px;
+    }
+    .bp-row { display: flex; gap: 3px; }
+    .bp-cell { border-radius: 3px; background: var(--cell-white); }
+    .bp-safe { background: var(--cell-safe); }
+    .bp-center { background: var(--cell-center); }
+    .bp-yellow { background: var(--cell-yellow); }
+
+    /* ===== RULES ===== */
+    #rules-screen { position: fixed; inset: 0; background: radial-gradient(ellipse at top, #2d1a08 0%, #0a0502 100%); z-index: 2600; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.3s ease; }
+    .rules-header { position: sticky; top: 0; background: rgba(10,5,2,0.85); backdrop-filter: blur(10px); padding: 16px; display: flex; align-items: center; border-bottom: 2px solid var(--panel-border); z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+    .rules-header h2 { margin: 0 0 0 16px; color: var(--gold); font-size: 20px; letter-spacing: 1px; }
+    .btn-back { background: #4b5563; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+    .rules-content { flex: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; padding-bottom: 60px; }
+    .rule-card { background: var(--panel-card); border: 1px solid var(--gold); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
+    .rule-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--gold); }
+    .rule-card h3 { margin: 0 0 10px 0; color: #fbbf24; font-size: 16px; border-bottom: 1px dashed rgba(251,191,36,0.3); padding-bottom: 8px; }
+    .rule-card p, .rule-card li { font-size: 14px; line-height: 1.6; color: var(--text-light); margin: 6px 0; }
+    .rule-card ul { margin: 0; padding-left: 24px; }
+    .rule-card strong { color: #fef3c7; }
+
+    /* ===== GAME LAYOUT ===== */
+    .game-wrap { display: flex; flex-direction: column; justify-content: space-between; width: 100%; max-width: 500px; height: 100%; gap: 4px; }
+    .top-panel { transform: rotate(180deg); }
+    .player-panel { display: flex; flex-direction: column; width: 100%; background: var(--panel-card); border: 1px solid var(--panel-border); border-radius: 12px; padding: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); flex-shrink: 0; }
+    .action-bar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+    .roll-btn-wrap { position: relative; flex: 1; max-width: 140px; padding: 3px; background: conic-gradient(var(--timer-color, transparent) var(--timer-pct, 0%), #1a0f06 0); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 8px rgba(0,0,0,0.8); }
+    .roll-btn-mini { width: 100%; padding: 10px 0; font-size: 14px; font-weight: 800; color: #1c0a00; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%); border: none; border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); outline: none; cursor: pointer; transition: transform 0.1s; }
+    .roll-btn-mini:active:not(:disabled) { transform: translateY(1px); }
+    .roll-btn-mini:disabled { background: #3d2a15; color: #6b4c2a; box-shadow: none; }
+    .shells-row-mini { display: flex; gap: 3px; flex-shrink: 0; }
+    .shell-el { width: 24px; height: 18px; border-radius: 50% 50% 40% 40%; border: 1.5px solid #8b6340; display: flex; align-items: center; justify-content: center; font-size: 11px; background: #fef9f0; color: #000; transition: transform 0.2s, background 0.2s; }
+    .shell-el.down { background: #a07850; color: #fef9f0; transform: rotateX(180deg); font-size: 9px; }
+    .vault-tokens-inline { display: flex; gap: 4px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); align-items: center; min-height: 32px; min-width: 60px; justify-content: center; }
+    .vault-tokens-inline .token { width: 22px; height: 22px; font-size: 0; border-width: 1.5px; margin: 0; position: static !important; }
+    .stats-bar { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 6px 8px; border-radius: 6px; }
+    .turn-badge-mini { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; }
+    .turn-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .turn-dot.c-red { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+    .turn-dot.c-blue { background: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
+    .turn-dot.dim { background: #555; }
+    .turn-label { transition: color 0.3s; }
+    .turn-label.c-red { color: #f87171; } .turn-label.c-blue { color: #60a5fa; } .turn-label.dim { color: #777; }
+    .stats-group { display: flex; align-items: center; gap: 8px; }
+    .stats-group span { font-weight: 700; color: var(--text-light); }
+    .strikes-row { display: flex; align-items: center; gap: 2px; }
+    .strike-icon { font-size: 10px; color: #555; } .strike-icon.used { color: #ef4444; }
+    .bottom-extra { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+    .pred-wrap { flex: 1; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); padding: 4px; }
+    .pred-header { font-size: 9px; color: var(--text-muted); text-align: center; margin-bottom: 2px; font-weight: bold; }
+    .meter-track { height: 14px; background: rgba(255,255,255,0.05); border-radius: 7px; display: flex; overflow: hidden; }
+    .meter-p1 { display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: white; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); will-change: width; min-width: 0; overflow: hidden; white-space: nowrap; }
+    .meter-p2 { display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: white; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); will-change: width; min-width: 0; overflow: hidden; white-space: nowrap; }
+    body[data-theme="red-blue"] .meter-p1, body[data-theme="blue-red"] .meter-p2 { background: linear-gradient(90deg, #b91c1c, #ef4444); }
+    body[data-theme="red-blue"] .meter-p2, body[data-theme="blue-red"] .meter-p1 { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
+    .quit-btn { background: #7f1d1d; color: white; font-size: 12px; font-weight: bold; border: 1px solid #ef4444; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+
+    /* ===== BOARD ===== */
+    .center-col { display: flex; flex: 1; align-items: center; justify-content: center; width: 100%; min-height: 0; padding: 2px 0; }
+    .board-wrap { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    .board {
+      display: grid; height: 100%; aspect-ratio: 1; gap: 2px; padding: 6px;
+      background: var(--board-bg); border-radius: 14px; border: 3px solid var(--board-border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8); position: relative; transform: translateZ(0);
+    }
+    .board.board-5x5 { grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); max-height: 68vw; }
+    .board.board-7x7 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(7, 1fr); max-height: 52vw; }
+    .cell { background: var(--cell-white); border-radius: 12%; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid rgba(139,90,43,0.3); }
+    .cell-yellow { background: var(--cell-yellow) !important; border-color: rgba(234,179,8,0.4) !important; }
+    .cell-orange { background: var(--cell-orange) !important; border-color: rgba(234,88,12,0.4) !important; }
+    .cell-safe { background: var(--cell-safe) !important; border: 1.5px dashed #16a34a !important; }
+    .cell-safe::after { content:'✕'; position:absolute; font-size:18px; color:rgba(22,163,74,0.15); font-weight:900; }
+    .cell-center { background: var(--cell-center) !important; border: 2px solid #d97706 !important; box-shadow: inset 0 0 12px rgba(245,158,11,0.3); }
+    .arrow-up::before { content:'↑'; position:absolute; top:-8px; font-size:10px; color:#1d4ed8; font-weight:700; z-index:40; }
+    .arrow-down::after { content:'↓'; position:absolute; bottom:-8px; font-size:10px; color:#b91c1c; font-weight:700; z-index:40; }
+
+    /* ===== TOKENS ===== */
+    .token { width: 75%; height: 75%; border-radius: 50%; border: 2px solid rgba(255,255,255,0.8); cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center; transition: transform 0.15s, box-shadow 0.15s; outline: none; position: relative; }
+    body[data-theme="red-blue"] .p1-token, body[data-theme="blue-red"] .p2-token { background: radial-gradient(circle at 35% 35%, #f87171, #b91c1c); box-shadow: 0 2px 6px rgba(185,28,28,0.6); }
+    body[data-theme="red-blue"] .p2-token, body[data-theme="blue-red"] .p1-token { background: radial-gradient(circle at 35% 35%, #60a5fa, #1d4ed8); box-shadow: 0 2px 6px rgba(29,78,216,0.6); }
+    .token.glow-move { animation: token-pulse 0.7s infinite alternate; border-color: #fbbf24; }
+    @keyframes token-pulse { 0% { box-shadow:0 0 4px #fbbf24; transform:scale(1); } 100% { box-shadow:0 0 16px #fbbf24; transform:scale(1.12); } }
+
+    /* ===== ORANGE ZONE SHIELD ===== */
+    .token.shielded { border: 2.5px solid #fb923c !important; box-shadow: 0 0 0 2px rgba(251,146,60,0.4), 0 2px 8px rgba(251,146,60,0.5) !important; animation: shield-pulse 1.2s infinite alternate; }
+    @keyframes shield-pulse { 0% { box-shadow: 0 0 4px #fb923c, 0 0 0 2px rgba(251,146,60,0.3); } 100% { box-shadow: 0 0 14px #fb923c, 0 0 0 4px rgba(251,146,60,0.5); } }
+
+    /* ===== STACK BADGE ===== */
+    .token .stack-count { position:absolute; top:-5px; right:-5px; min-width:15px; height:15px; background:#fbbf24; color:#7c2d12; border-radius:50%; font-size:9px; font-weight:900; display:flex; align-items:center; justify-content:center; border:1.5px solid white; z-index:35; pointer-events:none; padding:0 2px; box-shadow:0 1px 3px rgba(0,0,0,0.5); animation:badge-pop 0.25s ease-out; }
+    @keyframes badge-pop { 0%{transform:scale(0);} 60%{transform:scale(1.3);} 100%{transform:scale(1);} }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes step-hop { 0% { transform: scale(1) translateY(0); } 35% { transform: scale(1.25) translateY(-7px); } 65% { transform: scale(1.1) translateY(-3px); } 100% { transform: scale(1) translateY(0); } }
+    .token.step-hop { animation: step-hop 0.18s ease-out forwards !important; }
+    @keyframes kill-flash { 0% { box-shadow: 0 0 0px #ef4444; } 50% { box-shadow: 0 0 22px 6px #ef4444; transform: scale(1.25); } 100% { box-shadow: 0 0 6px #ef4444; transform: scale(1); } }
+    .token.kill-flash { animation: kill-flash 0.35s ease-out forwards !important; z-index: 90; }
+    @keyframes victim-shudder { 0% { transform: rotate(0deg) scale(1.1); } 20% { transform: rotate(-12deg) scale(1.2); } 40% { transform: rotate(12deg) scale(1.2); } 60% { transform: rotate(-8deg) scale(1.1); } 80% { transform: rotate(6deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
+    .token.victim-shudder { animation: victim-shudder 0.38s ease-out forwards !important; z-index: 90; }
+    @keyframes coin-enter { 0% { transform: scale(0.2) translateY(-40px); opacity: 0; } 60% { transform: scale(1.2) translateY(4px); opacity: 1; } 80% { transform: scale(0.92) translateY(-2px); } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+    .token.anim-enter { animation: coin-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important; }
+    @keyframes redhole-sink { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 60% { transform: scale(0.6) rotate(200deg); opacity: 0.7; } 100% { transform: scale(0.1) rotate(420deg); opacity: 0; } }
+    .token.anim-redhole-sink { animation: redhole-sink 0.5s ease-in forwards !important; z-index: 90; pointer-events: none; }
+    @keyframes portal-launch { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 50% { transform: scale(1.4) rotate(180deg); opacity: 0.8; } 100% { transform: scale(0.3) rotate(360deg); opacity: 0; } }
+    .token.anim-portal-launch { animation: portal-launch 0.4s ease-in forwards !important; z-index: 90; pointer-events: none; }
+    .token.anim-portal-land { animation: coin-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important; }
+
+    /* Traps */
+    .portal-layer, .redhole-layer { position:absolute; inset:0; border-radius:12%; z-index:15; pointer-events:none; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .portal-layer { background:#0f0f1a; animation:portal-blink 0.9s infinite alternate; }
+    @keyframes portal-blink { 0%{box-shadow:inset 0 0 8px #6366f1;} 100%{box-shadow:inset 0 0 20px #4f46e5;} }
+    .redhole-layer { background:#7f1d1d; animation:redhole-blink 0.6s infinite alternate; }
+    @keyframes redhole-blink { 0%{box-shadow:inset 0 0 10px #7f1d1d;} 100%{box-shadow:inset 0 0 25px #dc2626;} }
+    .crown-emoji { font-size:22px; animation:crown-float 2s infinite alternate; position:absolute; z-index:2; }
+    @keyframes crown-float { 0%{transform:translateY(0) scale(1); filter:drop-shadow(0 0 4px rgba(251,191,36,0.5));} 100%{transform:translateY(-3px) scale(1.07); filter:drop-shadow(0 0 12px rgba(251,191,36,0.9));} }
+    .sparkle { position:absolute; width:100%; height:100%; border-radius:50%; background:radial-gradient(circle, #fff 5%, #fbbf24 40%, transparent 70%); pointer-events:none; z-index:100; animation:spark 0.5s ease-out forwards; }
+    @keyframes spark { 0%{transform:scale(0.4); opacity:1;} 100%{transform:scale(2.5); opacity:0;} }
+    .shake { animation:shake 0.3s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+    .board.board-danger-flash { animation:board-flash-danger 0.5s ease-in-out 2; }
+    @keyframes board-flash-danger { 0%,100%{border-color:var(--board-border);} 50%{border-color:#ef4444; box-shadow:0 0 40px rgba(239,68,68,0.5);} }
+    .board.board-win-flash { animation:board-flash-win 0.5s ease-in-out 3; }
+    @keyframes board-flash-win { 0%,100%{border-color:var(--board-border);} 50%{border-color:#fbbf24; box-shadow:0 0 60px rgba(251,191,36,0.6);} }
+    .confetti-piece { position:fixed; top:-12px; width:8px; height:10px; z-index:999; animation:fall linear forwards; border-radius:2px; }
+    @keyframes fall { to{transform:translateY(110vh) rotate(720deg);} }
+
+    /* Board size badge */
+    .board-size-badge {
+      position: fixed; top: 12px; left: 12px; z-index: 5000;
+      background: var(--panel-card); border: 2px solid var(--gold); border-radius: 8px;
+      padding: 4px 10px; font-size: 12px; font-weight: bold; color: var(--gold);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    }
+    /* ===== AUTH SCREEN ===== */
+    #auth-screen {
+      position: fixed; inset: 0; z-index: 9000;
+      background: radial-gradient(ellipse at top, #2d1a08 0%, #0f0804 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .auth-box {
+      width: 100%; max-width: 340px;
+      background: var(--panel-card); border: 2px solid var(--panel-border);
+      border-radius: 20px; padding: 28px 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    }
+    .auth-title { font-size: 28px; color: var(--gold); text-align: center; margin: 0 0 4px; }
+    .auth-subtitle { font-size: 12px; color: var(--text-muted); text-align: center; margin: 0 0 24px; letter-spacing: 2px; }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid var(--panel-border); }
+    .auth-tab { flex: 1; padding: 10px; font-size: 14px; font-weight: bold; border: none; cursor: pointer; transition: all 0.2s; }
+    .auth-tab.active { background: var(--gold); color: #1c0a00; }
+    .auth-tab:not(.active) { background: transparent; color: var(--text-muted); }
+    .auth-field { margin-bottom: 14px; }
+    .auth-field label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: bold; letter-spacing: 1px; }
+    .auth-field input {
+      width: 100%; padding: 12px 14px; font-size: 15px;
+      background: rgba(255,255,255,0.05); border: 1.5px solid var(--panel-border);
+      border-radius: 10px; color: var(--text-light); outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-field input:focus { border-color: var(--gold); }
+    .auth-submit {
+      width: 100%; padding: 14px; font-size: 16px; font-weight: 900;
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      border: none; border-radius: 12px; color: #1c0a00;
+      cursor: pointer; margin-top: 8px; letter-spacing: 1px;
+      box-shadow: 0 6px 20px rgba(245,158,11,0.4);
+      transition: transform 0.1s;
+    }
+    .auth-submit:active { transform: scale(0.97); }
+    .auth-error { color: #f87171; font-size: 12px; text-align: center; margin-top: 10px; min-height: 18px; }
+    .auth-loading { text-align: center; color: var(--text-muted); font-size: 14px; margin-top: 10px; display: none; }
+
+    /* ===== PROFILE BADGE ===== */
+    #profile-btn {
+      position: fixed; top: 12px; left: 60px; z-index: 5000;
+      background: var(--panel-card); border: 2px solid var(--gold); border-radius: 8px;
+      padding: 4px 10px; font-size: 11px; font-weight: bold; color: var(--gold);
+      cursor: pointer; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    }
+
+    /* ===== PROFILE SCREEN ===== */
+    #profile-screen {
+      position: fixed; inset: 0; z-index: 8000;
+      background: radial-gradient(ellipse at top, #2d1a08 0%, #0f0804 100%);
+      display: none; flex-direction: column; align-items: center;
+      padding: 20px;
+    }
+    .profile-header { width: 100%; display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .profile-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #d97706); display: flex; align-items: center; justify-content: center; font-size: 26px; border: 3px solid var(--gold); }
+    .profile-name { font-size: 20px; font-weight: 900; color: var(--text-light); }
+    .profile-email { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 340px; }
+    .stat-card { background: var(--panel-card); border: 1px solid var(--panel-border); border-radius: 14px; padding: 16px; text-align: center; }
+    .stat-value { font-size: 32px; font-weight: 900; color: var(--gold); }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: bold; letter-spacing: 1px; }
+    .profile-logout { margin-top: 24px; padding: 12px 32px; background: #7f1d1d; color: white; border: 1px solid #ef4444; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .profile-close { margin-top: 12px; padding: 10px 32px; background: var(--panel-card); color: var(--text-muted); border: 1px solid var(--panel-border); border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; }
+  </style>
 </head>
 <body>
-    <h1>Ashta Chemma: Layered Conquest</h1>
-    <div id="board" class="board"></div>
-    <div class="controls">
-        <button onclick="rollDice()">Roll Dice (Gavvalu)</button>
-        <p id="status">Player 1 Turn - Roll the dice!</p>
+
+  <button id="audio-btn" aria-label="Toggle Audio">🔊</button>
+  <div class="board-size-badge" id="board-size-badge" style="display:none;"></div>
+  <button id="profile-btn">👤 <span id="profile-username-btn">Profile</span></button>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-box">
+      <h1 class="auth-title">ShellKoin 🐚</h1>
+      <p class="auth-subtitle">MOBILE EDITION • v1.0</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login">లాగిన్</button>
+        <button class="auth-tab" id="tab-register">రిజిస్టర్</button>
+      </div>
+      <!-- Login Form -->
+      <div id="form-login">
+        <div class="auth-field"><label>EMAIL</label><input type="email" id="login-email" placeholder="your@email.com" autocomplete="email"></div>
+        <div class="auth-field"><label>PASSWORD</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"></div>
+        <button class="auth-submit" id="btn-login">🎮 లాగిన్ చేయి</button>
+      </div>
+      <!-- Register Form -->
+      <div id="form-register" style="display:none;">
+        <div class="auth-field"><label>USERNAME</label><input type="text" id="reg-username" placeholder="vinay123" maxlength="20"></div>
+        <div class="auth-field"><label>EMAIL</label><input type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
+        <div class="auth-field"><label>PASSWORD (min 6 chars)</label><input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password"></div>
+        <button class="auth-submit" id="btn-register">✅ రిజిస్టర్ చేయి</button>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-loading" id="auth-loading">⏳ వేచి ఉండండి...</div>
+    </div>
+  </div>
+
+  <!-- PROFILE SCREEN -->
+  <div id="profile-screen">
+    <div style="width:100%; max-width:340px;">
+      <div class="profile-header">
+        <div class="profile-avatar">👤</div>
+        <div>
+          <div class="profile-name" id="profile-name">-</div>
+          <div class="profile-email" id="profile-email">-</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="stat-games">0</div><div class="stat-label">🎮 GAMES</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-wins">0</div><div class="stat-label">🏆 WINS</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-losses">0</div><div class="stat-label">💀 LOSSES</div></div>
+        <div class="stat-card"><div class="stat-value" id="stat-kills">0</div><div class="stat-label">⚔️ KILLS</div></div>
+      </div>
+      <div style="text-align:center; margin-top:16px;">
+        <div style="font-size:13px; color:var(--text-muted);">గెలుపు శాతం</div>
+        <div style="font-size:28px; font-weight:900; color:var(--gold);" id="stat-winrate">0%</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px;">
+        <button class="profile-close" id="btn-close-profile">🎮 గేమ్ కి వెళ్ళు</button>
+        <button class="profile-logout" id="btn-logout">🚪 లాగ్ అవుట్</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- START SCREEN -->
+  <div id="start-screen">
+    <h1 class="game-title">ShellKoin</h1>
+    <p class="game-subtitle">Mobile Edition</p>
+    <div style="display:flex; flex-direction:column; gap:16px; align-items:center;">
+      <button class="start-btn" id="start-btn-action">🎮 PLAY GAME</button>
+      <button class="start-btn secondary-btn" id="rules-btn-action" style="font-size:16px; padding:12px 30px;">📜 GAME RULES</button>
+    </div>
+  </div>
+
+  <!-- SETUP WIZARD -->
+  <div id="setup-screen" style="display:none;">
+    <div class="rules-header" style="width:100%;">
+      <button class="btn-back" id="setup-back-btn">⬅ బ్యాక్</button>
+      <h2>గేమ్ సెటప్</h2>
     </div>
 
-    <script>
-        const boardElement = document.getElementById('board');
-        // 5x5 grid generation
-        for (let r = 0; r < 5; r++) {
-            for (let c = 0; c < 5; c++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                // Defining safe zones based on your logic: R1,C3 - R3,C1 - R3,C3 - R3,C5 - R5,C3
-                if ((r===0 && c===2) || (r===2 && c===0) || (r===2 && c===4) || (r===4 && c===2)) cell.classList.add('safe');
-                if (r===2 && c===2) { cell.classList.add('king'); cell.innerText = "KING"; }
-                boardElement.appendChild(cell);
-            }
-        }
+    <!-- Step 0: Board Size -->
+    <div class="setup-content" id="step-board">
+      <h3 style="color:var(--gold); text-align:center; margin-bottom:24px;">బోర్డ్ సైజ్ ఎంచుకోండి</h3>
+      <div class="setup-options">
+        <button class="setup-btn setup-btn-5x5" id="btn-board-5x5">
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:4px;">⬛ 5×5</div>
+            <div style="font-size:12px; color:#a78bfa; font-weight:400;">పెద్ద సెల్స్ • వేగంగా ఆట</div>
+            <div class="board-preview" style="margin:8px auto 0;">
+              <div class="bp-row"><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div><div class="bp-cell" style="width:14px;height:14px;"></div><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div><div class="bp-cell" style="width:14px;height:14px;"></div><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div></div>
+              <div class="bp-row"><div class="bp-cell" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell" style="width:14px;height:14px;"></div></div>
+              <div class="bp-row"><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell bp-center" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div></div>
+              <div class="bp-row"><div class="bp-cell" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell bp-yellow" style="width:14px;height:14px;"></div><div class="bp-cell" style="width:14px;height:14px;"></div></div>
+              <div class="bp-row"><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div><div class="bp-cell" style="width:14px;height:14px;"></div><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div><div class="bp-cell" style="width:14px;height:14px;"></div><div class="bp-cell bp-safe" style="width:14px;height:14px;"></div></div>
+            </div>
+          </div>
+        </button>
+        <button class="setup-btn setup-btn-7x7" id="btn-board-7x7">
+          <div style="text-align:center;">
+            <div style="font-size:20px; margin-bottom:4px;">🏆 7×7</div>
+            <div style="font-size:12px; color:#c9a87c; font-weight:400;">క్లాసిక్ మోడ్ • ఎక్కువ స్ట్రాటజీ</div>
+          </div>
+        </button>
+      </div>
+    </div>
 
-        function rollDice() {
-            let roll = Math.floor(Math.random() * 8) + 1;
-            document.getElementById('status').innerText = "You rolled a " + roll;
-            // Gameplay logic will go here
+    <!-- Step 1: Game Mode -->
+    <div class="setup-content" id="step-mode" style="display:none;">
+      <h3 style="color:var(--gold); text-align:center; margin-bottom:24px;">మోడ్ ఎంచుకోండి</h3>
+      <div class="setup-options">
+        <button class="setup-btn" id="btn-mode-2p">👥 Two Players</button>
+        <button class="setup-btn" id="btn-mode-ai">🤖 Human vs AI</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Color (AI only) -->
+    <div class="setup-content" id="step-color" style="display:none;">
+      <h3 style="color:var(--gold); text-align:center; margin-bottom:24px;">మీ రంగు ఎంచుకోండి</h3>
+      <div class="setup-options">
+        <button class="setup-btn setup-btn-red" id="btn-color-red">🔴 RED</button>
+        <button class="setup-btn setup-btn-blue" id="btn-color-blue">🔵 BLUE</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Ready -->
+    <div class="setup-content" id="step-ready" style="display:none;">
+      <h3 style="color:var(--gold); text-align:center; margin-bottom:24px;" id="ready-summary"></h3>
+      <button class="start-btn" id="final-start-btn">▶ Start Game</button>
+    </div>
+  </div>
+
+  <!-- RULES SCREEN -->
+  <div id="rules-screen" style="display:none;">
+    <div class="rules-header">
+      <button class="btn-back" id="rules-back-btn">⬅ బ్యాక్</button>
+      <h2>📜 గేమ్ రూల్స్</h2>
+    </div>
+    <div class="rules-content">
+
+      <!-- ===== 5x5 RULES ===== -->
+      <div style="text-align:center; margin:8px 0 14px;">
+        <span style="background:#4c1d95; color:#a78bfa; font-size:15px; font-weight:900; padding:6px 20px; border-radius:20px; border:2px solid #7c3aed; letter-spacing:1px;">⬛ 5×5 MODE</span>
+      </div>
+      <div class="rule-card"><h3>🎯 లక్ష్యం</h3><p>మీ 4 కాయిన్స్‌ను 👑 Crown Cell (మధ్య) కి ముందుగా చేర్చిన ప్లేయర్ గెలుస్తాడు.</p></div>
+      <div class="rule-card"><h3>🎲 గవ్వల విలువలు</h3><ul>
+        <li><strong>1 బొర్లా</strong> = 1 అడుగు</li>
+        <li><strong>2 బొర్లాలు</strong> = 2 అడుగులు</li>
+        <li><strong>3 బొర్లాలు</strong> = 3 అడుగులు</li>
+        <li><strong>4 బొర్లాలు</strong> = 4 అడుగులు (Vault release)</li>
+        <li><strong>0 బొర్లాలు</strong> = 8 అడుగులు (Vault release + Extra Turn)</li>
+        <li style="color:#fbbf24;">ప్రతి 5వ roll కి guaranteed <strong>4 లేదా 8</strong> వస్తుంది</li>
+      </ul></div>
+      <div class="rule-card"><h3>🚪 కాయిన్ రిలీజ్</h3><p><strong>4 లేదా 8</strong> వచ్చినప్పుడు Vault లో ఉన్న కాయిన్‌ను Board మీదికి తీసుకురావచ్చు.</p></div>
+      <div class="rule-card"><h3>🏁 3 Layers</h3><ul>
+        <li><strong>Layer 1</strong> (⬜ outer ring): Normal path. Safe zones at edge centers.</li>
+        <li><strong>Layer 2</strong> (🟡 yellow): Inner ring. Permission కావాలి enter అవ్వడానికి.</li>
+        <li><strong>Layer 3</strong> (🟠 orange box): Crown దగ్గర 4 cells. Exact roll తో crown కి వెళ్ళాలి.</li>
+      </ul></div>
+      <div class="rule-card"><h3>👑 Crown Rule (Important!)</h3><p>Crown కి వెళ్ళాలంటే <strong>exact number</strong> రావాలి. ఎక్కువ పడితే token అక్కడే ఉంటుంది — Crown దాటదు!</p></div>
+      <div class="rule-card"><h3>🔥 కిల్ రూల్</h3><p>మీ కాయిన్ ప్రత్యర్థి కాయిన్ ఉన్న cell మీద ఆగితే — ప్రత్యర్థి కాయిన్ <strong>Vault కి</strong> వెళ్తుంది. Kill చేసిన player కి Extra Turn వస్తుంది.</p></div>
+      <div class="rule-card"><h3>🟢 Safe Zones</h3><p>Edge-center cells (↑↓←→) మరియు Crown మీద ఉన్న కాయిన్‌ను Kill చేయలేరు.</p></div>
+      <div class="rule-card"><h3>🛡️ Orange Zone Shield</h3><p>Orange box లో మొదటగా వచ్చిన కాయిన్ కి Shield వస్తుంది — అది kill కాదు.</p></div>
+      <div class="rule-card"><h3>🌀 Portal / 🔥 Red Hole</h3><p><strong>Outer ring లో మాత్రమే</strong> appear అవుతాయి.<br>🌀 Portal: 5 అడుగులు forward jump.<br>🔥 Red Hole: కాయిన్ Start కి వెళ్తుంది.</p></div>
+
+      <!-- ===== DIVIDER ===== -->
+      <div style="border-top:2px dashed #4a2a10; margin:20px 0;"></div>
+
+      <!-- ===== 7x7 RULES ===== -->
+      <div style="text-align:center; margin:8px 0 14px;">
+        <span style="background:#1c0f00; color:#f59e0b; font-size:15px; font-weight:900; padding:6px 20px; border-radius:20px; border:2px solid #f59e0b; letter-spacing:1px;">🏆 7×7 MODE</span>
+      </div>
+      <div class="rule-card"><h3>🎯 లక్ష్యం</h3><p>మీ 4 కాయిన్స్‌ను 👑 Crown Cell (మధ్య) కి ముందుగా చేర్చిన ప్లేయర్ గెలుస్తాడు.</p></div>
+      <div class="rule-card"><h3>🎲 గవ్వల విలువలు</h3><ul>
+        <li><strong>1 బొర్లా</strong> = 1 అడుగు</li>
+        <li><strong>2 బొర్లాలు</strong> = 2 అడుగులు</li>
+        <li><strong>3 బొర్లాలు</strong> = 3 అడుగులు</li>
+        <li><strong>4 బొర్లాలు</strong> = 6 అడుగులు (Vault release)</li>
+        <li><strong>0 బొర్లాలు</strong> = 12 అడుగులు (Vault release + Extra Turn)</li>
+        <li style="color:#fbbf24;">ప్రతి 5వ roll కి guaranteed <strong>6 లేదా 12</strong> వస్తుంది</li>
+      </ul></div>
+      <div class="rule-card"><h3>🚪 కాయిన్ రిలీజ్</h3><p><strong>6 లేదా 12</strong> వచ్చినప్పుడు Vault లో ఉన్న కాయిన్‌ను Board మీదికి తీసుకురావచ్చు.</p></div>
+      <div class="rule-card"><h3>🔥 కిల్ రూల్</h3><p>మీ కాయిన్ ప్రత్యర్థి కాయిన్ ఉన్న cell మీద ఆగితే — ప్రత్యర్థి కాయిన్ <strong>Vault కి</strong> వెళ్తుంది. Kill చేసిన player కి Extra Turn వస్తుంది.</p></div>
+      <div class="rule-card"><h3>🟢 Safe Zones</h3><p>Safe Zone లో ఉన్న కాయిన్‌ను Kill చేయలేరు.</p></div>
+      <div class="rule-card"><h3>🛡️ Orange Zone Shield</h3><p>Orange zone లో మొదటగా వచ్చిన కాయిన్ కి Shield వస్తుంది — అది kill కాదు.</p></div>
+      <div class="rule-card"><h3>🌀 Portal / 🔥 Red Hole</h3><p>🌀 Portal: 10 అడుగులు forward jump.<br>🔥 Red Hole: కాయిన్ Start కి వెళ్తుంది.</p></div>
+
+    </div>
+  </div>
+
+  <!-- RESTART SCREEN -->
+  <div id="restart-screen" style="display:none;">
+    <h1 class="game-title" id="rs-title">Game Over</h1>
+    <p class="game-subtitle" id="rs-sub" style="color:var(--gold); margin-bottom:30px;">Result</p>
+    <button class="start-btn" id="restart-btn-action">🔄 Restart Game</button>
+  </div>
+
+  <!-- QUIT MODAL -->
+  <div id="quit-modal" style="display:none;">
+    <div class="modal-box">
+      <h2 style="margin-top:0; color:var(--red);">ఆటను ఆపేయాలా?</h2>
+      <p style="color:var(--text-muted); font-size:14px;">ఆట మధ్యలో ఆపేస్తే మళ్ళీ మొదటి నుండి ఆడాలి.</p>
+      <div class="modal-btns">
+        <button class="btn-sm btn-no" id="btn-quit-no">వద్దు</button>
+        <button class="btn-sm btn-yes" id="btn-quit-yes">అవును, ఆపేయ్</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GAME UI -->
+  <div class="game-wrap" id="main-game" style="display:none;">
+    <!-- P2 (TOP) -->
+    <div class="player-panel top-panel">
+      <div class="action-bar">
+        <div class="roll-btn-wrap" id="p2-timer-wrap">
+          <button class="roll-btn-mini" id="p2-roll-btn" disabled>🎲 వెయిట్ ⏳</button>
+        </div>
+        <div class="shells-row-mini">
+          <div class="shell-el" id="p2-s0">🐚</div><div class="shell-el" id="p2-s1">🐚</div>
+          <div class="shell-el" id="p2-s2">🐚</div><div class="shell-el" id="p2-s3">🐚</div>
+        </div>
+        <div class="vault-tokens-inline" id="p2-vault-tokens"></div>
+      </div>
+      <div class="stats-bar">
+        <div class="turn-badge-mini"><div class="turn-dot dim" id="p2-dot"></div><span class="turn-label dim" id="p2-label">BLUE వంతు</span></div>
+        <div class="stats-group">కిల్స్: <span id="p2-kills">0</span> | పర్మిషన్: <span id="p2-perm">❌</span> | <div class="strikes-row" id="p2-strikes"></div></div>
+      </div>
+    </div>
+
+    <!-- BOARD -->
+    <div class="center-col">
+      <div class="board-wrap">
+        <div class="board" id="game-board"></div>
+      </div>
+    </div>
+
+    <!-- P1 (BOTTOM) -->
+    <div class="player-panel bottom-panel">
+      <div class="action-bar">
+        <div class="roll-btn-wrap" id="p1-timer-wrap">
+          <button class="roll-btn-mini" id="p1-roll-btn">🎲 రోల్</button>
+        </div>
+        <div class="shells-row-mini">
+          <div class="shell-el" id="p1-s0">🐚</div><div class="shell-el" id="p1-s1">🐚</div>
+          <div class="shell-el" id="p1-s2">🐚</div><div class="shell-el" id="p1-s3">🐚</div>
+        </div>
+        <div class="vault-tokens-inline" id="p1-vault-tokens"></div>
+      </div>
+      <div class="stats-bar">
+        <div class="turn-badge-mini"><div class="turn-dot c-red" id="p1-dot"></div><span class="turn-label c-red" id="p1-label">RED వంతు</span></div>
+        <div class="stats-group">కిల్స్: <span id="p1-kills">0</span> | పర్మిషన్: <span id="p1-perm">❌</span> | <div class="strikes-row" id="p1-strikes"></div></div>
+      </div>
+      <div class="bottom-extra">
+        <div class="pred-wrap">
+          <div class="pred-header" id="pred-header-text">గెలుపు అంచనా — 🔴 <span id="pred-p1-pct">50</span>% vs 🔵 <span id="pred-p2-pct">50</span>%</div>
+          <div class="meter-track">
+            <div class="meter-p1" id="m-p1" style="width:50%">50%</div>
+            <div class="meter-p2" id="m-p2" style="width:50%">50%</div>
+          </div>
+        </div>
+        <button class="quit-btn" id="btn-quit-main">✕ QUIT</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // =====================================================
+  // BOARD CONFIGURATIONS
+  // =====================================================
+  const BOARD_CONFIGS = {
+    '5x5': {
+      gridSize: 5,
+      // P1 starts bottom-center (5,3), goes clockwise outer then inner spiral
+      p1Path: ['5,3','5,4','5,5','4,5','3,5','2,5','1,5','1,4','1,3','1,2','1,1','2,1','3,1','4,1','5,1','5,2','4,2','3,2','2,2','2,3','2,4','3,4','4,4','4,3','3,3'],
+      // P2 starts top-center (1,3), goes counter-clockwise outer then inner spiral
+      p2Path: ['1,3','1,2','1,1','2,1','3,1','4,1','5,1','5,2','5,3','5,4','5,5','4,5','3,5','2,5','1,5','1,4','2,4','3,4','4,4','4,3','4,2','3,2','2,2','2,3','3,3'],
+      // Layer 1 = outer ring (indices 0-15): safe zones only at edge-center cells
+      safeZones: ['1,3','3,1','3,5','5,3','3,3'],
+      centerCoord: '3,3',
+      // Layer 2 = middle ring (indices 16-23): all yellow
+      // Coords: 4,2  3,2  2,2  2,3  2,4  3,4  4,4  4,3
+      layer2StartIdx: 16,
+      layer2EndIdx: 24,    // exclusive — used for yellow slice
+      // Layer 3 = orange "kind box" = 4 direct crown neighbors: 2,3  3,2  3,4  4,3
+      // These sit at p1 indices 19,17,21,23 and p2 indices 23,21,17,19
+      // Use coord-based set for orange (overrides yellow in buildBoard)
+      orangeCoords5x5: new Set(['2,3','3,2','3,4','4,3']),
+      // orangeStartIdx/orangeEndIdx: used only for isInOrange shield check
+      // We cover all of layer2 (16-23) as eligible for orange shield since
+      // layer3 is a subset — keep broader range so shield logic still works
+      orangeStartIdx: 16,
+      orangeEndIdx: 23,
+      arrowUp: [],
+      arrowDown: [],
+      // Layer2 boundary for permission gate
+      layer2GateIdx: 15,   // outer ends at 15, inner starts at 16
+      storageKey: 'shellkoin_5x5',
+      portalJump: 5,
+      boardClass: 'board-5x5',
+      boardMaxVh: '68vw'
+    },
+    '7x7': {
+      gridSize: 7,
+      p1Path: ["7,4","7,5","7,6","7,7","6,7","5,7","4,7","3,7","2,7","1,7","1,6","1,5","1,4","1,3","1,2","1,1","2,1","3,1","4,1","5,1","6,1","7,1","7,2","7,3","6,2","5,2","4,2","3,2","2,2","2,3","2,4","2,5","2,6","3,6","4,6","5,6","6,6","6,5","6,4","6,3","5,3","4,3","3,3","3,4","3,5","4,5","5,5","5,4","4,4"],
+      p2Path: ["1,4","1,3","1,2","1,1","2,1","3,1","4,1","5,1","6,1","7,1","7,2","7,3","7,4","7,5","7,6","7,7","6,7","5,7","4,7","3,7","2,7","1,7","1,6","1,5","2,6","3,6","4,6","5,6","6,6","6,5","6,4","6,3","6,2","5,2","4,2","3,2","2,2","2,3","2,4","2,5","3,5","4,5","5,5","5,4","5,3","4,3","3,3","3,4","4,4"],
+      safeZones: ["1,4","4,7","7,4","4,1","4,4"],
+      centerCoord: '4,4',
+      layer2StartIdx: 24,
+      layer2EndIdx: 40,
+      orangeStartIdx: 41,
+      orangeEndIdx: 46,
+      arrowUp: ['7,2','6,3','5,4'],
+      arrowDown: ['1,6','2,5','3,4'],
+      layer2GateIdx: 23,
+      storageKey: 'shellkoin_7x7',
+      portalJump: 10,
+      boardClass: 'board-7x7',
+      boardMaxVh: '52vw'
+    }
+  };
+
+  let CFG = BOARD_CONFIGS['7x7']; // active config, set on game start
+
+  // =====================================================
+  // DOM CACHE
+  // =====================================================
+  const D = {
+    board:null, cells:{},
+    p1TokensDOM:[], p2TokensDOM:[], p1VaultDOM:[], p2VaultDOM:[],
+    p1Vault:null, p2Vault:null,
+    p1RollBtn:null, p2RollBtn:null,
+    p1TimerWrap:null, p2TimerWrap:null,
+    p1Dot:null, p2Dot:null, p1Label:null, p2Label:null,
+    p1Kills:null, p2Kills:null, p1Perm:null, p2Perm:null,
+    mP1:null, mP2:null, predP1Pct:null, predP2Pct:null,
+    p1Strikes:null, p2Strikes:null,
+    shells:{p1:[],p2:[]},
+    portalEl:null, redholeEl:null, audioBtn:null,
+    boardSizeBadge:null
+  };
+
+  // =====================================================
+  // SFX
+  // =====================================================
+  const SFX = {
+    ctx:null, volMode:2,
+    init(){if(!this.ctx){this.ctx=new(window.AudioContext||window.webkitAudioContext)();}if(this.ctx.state==='suspended')this.ctx.resume();},
+    play(type){
+      if(this.volMode===0)return;
+      const v=this.volMode===1?0.3:1.0;
+      try{
+        this.init();const t=this.ctx.currentTime;const osc=this.ctx.createOscillator();const gain=this.ctx.createGain();osc.connect(gain);gain.connect(this.ctx.destination);
+        if(type==='roll'){[0,0.05,0.1,0.15].forEach(d=>{const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type='square';o.connect(g);g.connect(this.ctx.destination);o.frequency.setValueAtTime(800,t+d);o.frequency.exponentialRampToValueAtTime(200,t+d+0.05);g.gain.setValueAtTime(0.1*v,t+d);g.gain.linearRampToValueAtTime(0,t+d+0.05);o.start(t+d);o.stop(t+d+0.05);});}
+        else if(type==='move'){osc.type='sine';osc.frequency.setValueAtTime(600,t);osc.frequency.exponentialRampToValueAtTime(300,t+0.1);gain.gain.setValueAtTime(0.2*v,t);gain.gain.linearRampToValueAtTime(0,t+0.1);osc.start(t);osc.stop(t+0.1);}
+        else if(type==='kill'){osc.type='sawtooth';osc.frequency.setValueAtTime(200,t);osc.frequency.exponentialRampToValueAtTime(20,t+0.3);gain.gain.setValueAtTime(0.3*v,t);gain.gain.linearRampToValueAtTime(0,t+0.3);osc.start(t);osc.stop(t+0.3);}
+        else if(type==='shield'){osc.type='sine';osc.frequency.setValueAtTime(400,t);osc.frequency.linearRampToValueAtTime(800,t+0.2);gain.gain.setValueAtTime(0.2*v,t);gain.gain.linearRampToValueAtTime(0,t+0.2);osc.start(t);osc.stop(t+0.2);}
+        else if(type==='portal'){osc.type='sine';osc.frequency.setValueAtTime(300,t);osc.frequency.linearRampToValueAtTime(1200,t+0.4);gain.gain.setValueAtTime(0.2*v,t);gain.gain.linearRampToValueAtTime(0,t+0.4);osc.start(t);osc.stop(t+0.4);}
+        else if(type==='redhole'||type==='timeout'){osc.type='square';osc.frequency.setValueAtTime(150,t);osc.frequency.linearRampToValueAtTime(100,t+0.4);gain.gain.setValueAtTime(0.2*v,t);gain.gain.linearRampToValueAtTime(0,t+0.4);osc.start(t);osc.stop(t+0.4);}
+        else if(type==='win'){[300,400,500,600,800,1200].forEach((f,i)=>{const o=this.ctx.createOscillator();const g=this.ctx.createGain();o.type='triangle';o.connect(g);g.connect(this.ctx.destination);o.frequency.setValueAtTime(f,t+i*0.1);g.gain.setValueAtTime(0.2*v,t+i*0.1);g.gain.linearRampToValueAtTime(0,t+i*0.1+0.2);o.start(t+i*0.1);o.stop(t+i*0.1+0.2);});}
+      }catch(e){}
+    }
+  };
+
+  // =====================================================
+  // GAME STATE
+  // =====================================================
+  function getInitialState(){
+    return {
+      boardMode: '7x7',        // overwritten by startFreshGame with actual mode
+      currentPlayer:1, currentRoll:0, hasRolled:false,
+      p1Tokens:[-1,-1,-1,-1], p2Tokens:[-1,-1,-1,-1],
+      isGameOver:false, extraTurns:0,
+      p1Kills:0, p2Kills:0,
+      p1PortalUsed:false, p2PortalUsed:false,
+      p1BonusPending:false, p2BonusPending:false,
+      p1Revenge:false, p2Revenge:false,
+      p1MissCount:0, p2MissCount:0,
+      p1Timeouts:0, p2Timeouts:0,
+      p1OrangeFirst:[-1,-1,-1,-1],
+      p2OrangeFirst:[-1,-1,-1,-1],
+      orangeFirstP1Coord:{},
+      orangeFirstP2Coord:{},
+      gameMode:'2P', theme:'red-blue',
+      // Roll counters — every 5th roll guaranteed to be 4 or 8
+      p1RollCount:0, p2RollCount:0
+    };
+  }
+
+  let G = getInitialState();
+  let activePortal=null, portalTimer=null;
+  let activeRedhole=null, redholeTimer=null;
+  let turnTimeLeft=100;
+  let gameLoopIntervals=[];
+  let actionTimeouts=[];
+  let timerIntervalRef=null;
+  let saveDebounceRef=null;
+  let tempSetup={boardMode:'7x7', mode:'2P', hColor:1, aColor:2};
+  let currentSetupStep=0;
+
+  function registerAction(fn,delay){const id=setTimeout(fn,delay);actionTimeouts.push(id);return id;}
+  function clearActionTimeouts(){actionTimeouts.forEach(clearTimeout);actionTimeouts=[];}
+
+  function saveGameState(){
+    if(G.isGameOver)return;
+    clearTimeout(saveDebounceRef);
+    saveDebounceRef=setTimeout(()=>{localStorage.setItem(CFG.storageKey, JSON.stringify(G));},300);
+  }
+  function loadGameState(boardMode){
+    const key = BOARD_CONFIGS[boardMode].storageKey;
+    const s=localStorage.getItem(key);
+    if(s){try{G={...getInitialState(),...JSON.parse(s)};return true;}catch(e){return false;}}
+    return false;
+  }
+  function clearGameState(){
+    clearTimeout(saveDebounceRef);
+    localStorage.removeItem(CFG.storageKey);
+  }
+
+  // =====================================================
+  // HELPER FUNCTIONS (use CFG)
+  // =====================================================
+
+  // Precomputed orange coord sets — rebuilt when CFG changes
+  let _orangeCoordSet = null;
+  function getOrangeCoordSet(){
+    if(_orangeCoordSet) return _orangeCoordSet;
+    if(CFG.gridSize===5){
+      _orangeCoordSet = CFG.orangeCoords5x5;
+    } else {
+      _orangeCoordSet = new Set();
+      CFG.p1Path.slice(CFG.orangeStartIdx, CFG.orangeEndIdx+1).forEach(c=>_orangeCoordSet.add(c));
+      CFG.p2Path.slice(CFG.orangeStartIdx, CFG.orangeEndIdx+1).forEach(c=>_orangeCoordSet.add(c));
+    }
+    return _orangeCoordSet;
+  }
+
+  function isInOrange(pos, player){
+    // Use COORD-based check, not index — same cell can have different indices on each path
+    if(pos===-1) return false;
+    const path = player===1 ? CFG.p1Path : CFG.p2Path;
+    const coord = path[pos];
+    return getOrangeCoordSet().has(coord);
+  }
+
+  function isOrangeCoord(coord){
+    return getOrangeCoordSet().has(coord);
+  }
+
+  function hasPerm(p){return p===1?(G.p1Kills>0||G.p1PortalUsed):(G.p2Kills>0||G.p2PortalUsed);}
+
+  function getNextPos(c, s, perm){
+    if(CFG.gridSize===5){
+      const crownIdx=CFG.p1Path.length-1; // 24
+      const gateIdx=CFG.layer2GateIdx;    // 15
+      const innerStart=CFG.layer2StartIdx; // 16
+
+      if(!perm){
+        // No permission: outer ring only, cannot cross gate into inner
+        let nx=c+s;
+        if(nx > gateIdx) nx = gateIdx;
+        return nx;
+      }
+
+      // With permission:
+      const nx=c+s;
+
+      if(c >= innerStart){
+        // Token ALREADY in inner ring — must land EXACTLY on crown
+        if(nx === crownIdx) return crownIdx; // exact → crown ✅
+        if(nx > crownIdx)   return c;        // overshoot → STAY (can't move)
+        return nx;                           // normal inner move forward
+      } else {
+        // Token is on outer ring with permission (unusual — outer→inner allowed)
+        if(nx > crownIdx) return gateIdx;   // overshoot from outer = stop at gate
+        return nx;
+      }
+    } else {
+      // 7x7 original logic
+      if(!perm){
+        let nx=c+s;
+        if(c<=23&&nx>23)nx-=24;
+        return nx;
+      }
+      if(c===23)return(c+s)-24;
+      let nx=c+s;
+      if(c<=22&&nx>=23)nx+=1;
+      return nx;
+    }
+  }
+
+  function getNextPosWithPerm(p, s){
+    // Always with permission - used for portal landing
+    if(CFG.gridSize===5){
+      return Math.min(p+s, CFG.p1Path.length-1);
+    } else {
+      for(let i=0;i<s;i++){
+        if(p===23)p=0;
+        else if(p===22)p=24;
+        else p++;
+        if(p>=CFG.p1Path.length-1){p=CFG.p1Path.length-1;break;}
+      }
+      return p;
+    }
+  }
+
+  function getMovable(roll){
+    const p=G.currentPlayer, t=p===1?G.p1Tokens:G.p2Tokens;
+    const perm=hasPerm(p), res=[];
+    for(let i=0;i<4;i++){
+      if(t[i]===-1)continue;
+      const nx=getNextPos(t[i],roll,perm);
+      // Skip if token can't move (blocked at gate, or overshoot in inner ring)
+      if(nx===t[i])continue;
+      if(nx<CFG.p1Path.length)res.push({idx:i,targetPos:nx});
+    }
+    return res;
+  }
+
+  function boostedRoll(b){
+    // 5x5: max 8 | 7x7: max 12
+    if(CFG.gridSize===5) return b<=1?3:b===2?4:b===3?8:8;
+    else                 return b<=1?3:b===2?6:12; // 7x7 original
+  }
+  function flashBoard(cls){D.board.classList.add(cls);setTimeout(()=>D.board.classList.remove(cls),1100);}
+  function sparkle(c){const cell=D.cells[c];if(!cell)return;const s=document.createElement('div');s.className='sparkle';cell.appendChild(s);setTimeout(()=>{if(s&&s.parentNode)s.remove();},500);}
+  function shakeBoard(){D.board.classList.add('shake');setTimeout(()=>D.board.classList.remove('shake'),320);}
+  function triggerConfetti(){const c=['#ef4444','#3b82f6','#fbbf24','#4ade80','#a855f7','#f97316'];for(let i=0;i<80;i++){const p=document.createElement('div');p.className='confetti-piece';p.style.left=Math.random()*100+'vw';p.style.animationDelay=Math.random()*2+'s';p.style.animationDuration=(Math.random()*3+2)+'s';p.style.background=c[Math.floor(Math.random()*c.length)];p.style.borderRadius=Math.random()<0.5?'50%':'2px';document.body.appendChild(p);setTimeout(()=>p.remove(),5500);}}
+
+  // =====================================================
+  // GAME LOOPS (portal/redhole)
+  // =====================================================
+  function startGameLoops(){
+    clearGameLoops();
+    gameLoopIntervals.push(setInterval(tryPortal,18000));
+    gameLoopIntervals.push(setInterval(tryRedhole,25000));
+  }
+  function clearGameLoops(){
+    gameLoopIntervals.forEach(clearInterval);gameLoopIntervals=[];
+    clearTimeout(portalTimer);clearTimeout(redholeTimer);
+    removePortal();removeRedhole();
+  }
+
+  function tryPortal(){
+    if(G.isGameOver||activePortal)return;
+    const occ=[];
+    G.p1Tokens.forEach(p=>{if(p!==-1&&p<CFG.p1Path.length-1)occ.push(CFG.p1Path[p]);});
+    G.p2Tokens.forEach(p=>{if(p!==-1&&p<CFG.p2Path.length-1)occ.push(CFG.p2Path[p]);});
+
+    // For 5x5: portal only on outer ring (layer 1 = indices 0-15), not inner ring or orange box
+    // For 7x7: portal anywhere except safe zones and center
+    let pool;
+    if(CFG.gridSize===5){
+      const outerCoords=new Set([...CFG.p1Path.slice(0,16),...CFG.p2Path.slice(0,16)]);
+      pool=[...outerCoords].filter(c=>!CFG.safeZones.includes(c)&&c!==CFG.centerCoord&&!occ.includes(c)&&c!==activeRedhole);
+    } else {
+      pool=[...new Set([...CFG.p1Path,...CFG.p2Path])].filter(c=>!CFG.safeZones.includes(c)&&c!==CFG.centerCoord&&!occ.includes(c)&&c!==activeRedhole);
+    }
+    if(!pool.length)return;
+    activePortal=pool[Math.floor(Math.random()*pool.length)];
+    const cell=D.cells[activePortal];
+    if(cell){cell.appendChild(D.portalEl);portalTimer=setTimeout(()=>{removePortal();},12000);}
+  }
+  function removePortal(){if(D.portalEl&&D.portalEl.parentNode)D.portalEl.parentNode.removeChild(D.portalEl);clearTimeout(portalTimer);activePortal=null;}
+
+  function tryRedhole(){
+    if(G.isGameOver||activeRedhole)return;
+    const occ=[];
+    G.p1Tokens.forEach(p=>{if(p!==-1&&p<CFG.p1Path.length-1)occ.push(CFG.p1Path[p]);});
+    G.p2Tokens.forEach(p=>{if(p!==-1&&p<CFG.p2Path.length-1)occ.push(CFG.p2Path[p]);});
+
+    // For 5x5: redhole only on outer ring (layer 1), not inner ring
+    let pool;
+    if(CFG.gridSize===5){
+      const outerCoords=new Set([...CFG.p1Path.slice(0,16),...CFG.p2Path.slice(0,16)]);
+      pool=[...outerCoords].filter(c=>!CFG.safeZones.includes(c)&&c!==CFG.centerCoord&&!occ.includes(c)&&c!==activePortal);
+    } else {
+      pool=[...new Set([...CFG.p1Path,...CFG.p2Path])].filter(c=>!CFG.safeZones.includes(c)&&c!==CFG.centerCoord&&!occ.includes(c)&&c!==activePortal);
+    }
+    if(!pool.length)return;
+    activeRedhole=pool[Math.floor(Math.random()*pool.length)];
+    const cell=D.cells[activeRedhole];
+    if(cell){cell.appendChild(D.redholeEl);redholeTimer=setTimeout(()=>{removeRedhole();},12000);}
+  }
+  function removeRedhole(){if(D.redholeEl&&D.redholeEl.parentNode)D.redholeEl.parentNode.removeChild(D.redholeEl);clearTimeout(redholeTimer);activeRedhole=null;}
+
+  // =====================================================
+  // TIMER
+  // =====================================================
+  function startTimer(){
+    if(G.isGameOver)return;
+    clearInterval(timerIntervalRef);turnTimeLeft=100;
+    D.p1TimerWrap.style.setProperty('--timer-pct','0%');
+    D.p2TimerWrap.style.setProperty('--timer-pct','0%');
+    const activeWrap=G.currentPlayer===1?D.p1TimerWrap:D.p2TimerWrap;
+    const c1=G.theme==='blue-red'?'#3b82f6':'#ef4444';
+    const c2=G.theme==='blue-red'?'#ef4444':'#3b82f6';
+    const color=G.currentPlayer===1?c1:c2;
+    activeWrap.style.setProperty('--timer-color',color);
+    activeWrap.style.setProperty('--timer-pct','100%');
+    timerIntervalRef=setInterval(()=>{
+      if(G.isGameOver){clearInterval(timerIntervalRef);return;}
+      turnTimeLeft-=1;
+      activeWrap.style.setProperty('--timer-pct',turnTimeLeft+'%');
+      if(turnTimeLeft<=0){clearInterval(timerIntervalRef);handleTimeout();}
+    },100);
+  }
+  function stopTimer(){clearInterval(timerIntervalRef);}
+
+  function handleTimeout(){
+    SFX.play('timeout');const p=G.currentPlayer;
+    if(p===1)G.p1Timeouts++;else G.p2Timeouts++;
+    updateStrikeDisplay();
+    const strikes=p===1?G.p1Timeouts:G.p2Timeouts;
+    if(strikes>=4){
+      G.isGameOver=true;stopTimer();clearGameLoops();clearActionTimeouts();
+      D.p1RollBtn.disabled=true;D.p2RollBtn.disabled=true;
+      const p1Name=G.theme==='blue-red'?'BLUE':'RED';
+      const p2Name=G.theme==='blue-red'?'RED':'BLUE';
+      const winner=p===1?p2Name:p1Name;
+      const loser=p===1?p1Name:p2Name;
+      D.p1Label.textContent=`${winner} విజేత! 👑`;D.p2Label.textContent=`${winner} విజేత! 👑`;
+      SFX.play('win');triggerConfetti();updateBoard();flashBoard('board-win-flash');
+      showRestartScreen(`${winner} గెలిచారు! 👑`,`${loser} ప్లేయర్ టైమ్ ఔట్ వల్ల డిస్‌క్వాలిఫై!`);return;
+    }
+    const tokens=p===1?G.p1Tokens:G.p2Tokens;
+    let maxPos=-1,targetIdx=-1;
+    for(let i=0;i<4;i++){if(tokens[i]>-1&&tokens[i]<CFG.p1Path.length-1&&tokens[i]>maxPos){maxPos=tokens[i];targetIdx=i;}}
+    if(targetIdx!==-1){
+      let newPos=Math.max(0,tokens[targetIdx]-6);
+      tokens[targetIdx]=newPos;
+      const path=p===1?CFG.p1Path:CFG.p2Path;
+      const oppPath=p===1?CFG.p2Path:CFG.p1Path;
+      const oppTokens=p===1?G.p2Tokens:G.p1Tokens;
+      const landedCoord=path[newPos];
+      if(!CFG.safeZones.includes(landedCoord)&&oppTokens.some(pos=>pos!==-1&&oppPath[pos]===landedCoord)){tokens[targetIdx]=-1;}
+    }
+    G.hasRolled=false;G.currentRoll=0;updateBoard();flashBoard('board-danger-flash');
+    clearActionTimeouts();registerAction(()=>switchTurn(false),2000);
+  }
+
+  function updateStrikeDisplay(){
+    ['p1','p2'].forEach(p=>{
+      const n=p==='p1'?G.p1Timeouts:G.p2Timeouts;
+      const el=p==='p1'?D.p1Strikes:D.p2Strikes;el.innerHTML='';
+      for(let i=0;i<4;i++){const sp=document.createElement('span');sp.className='strike-icon'+(i<n?' used':'');sp.textContent=i<n?'⚡':'○';el.appendChild(sp);}
+    });
+  }
+
+  // =====================================================
+  // SMOOTH STEP ANIMATIONS
+  // =====================================================
+  function executeSmoothSteps(tokenEl, path, steps, stepMs, onDone){
+    tokenEl.classList.remove('anim-killed','anim-bounced','anim-enter','anim-move','glow-move','victim-shudder','kill-flash','step-hop');
+    tokenEl.style.zIndex='80';
+    tokenEl.style.pointerEvents='none';
+    let stepIdx=0;
+    function doStep(){
+      if(stepIdx>=steps.length){
+        tokenEl.style.zIndex='';tokenEl.style.pointerEvents='';tokenEl.style.transition='';tokenEl.style.transform='';
+        if(onDone)onDone();return;
+      }
+      const pos=steps[stepIdx];
+      const coord=path[pos];
+      const cell=D.cells[coord];
+      if(cell&&tokenEl.parentNode!==cell){
+        const startRect=tokenEl.getBoundingClientRect();
+        cell.appendChild(tokenEl);
+        const endRect=tokenEl.getBoundingClientRect();
+        const dx=startRect.left-endRect.left;
+        const dy=startRect.top-endRect.top;
+        tokenEl.style.transition='none';
+        tokenEl.style.transform=`translate(${dx}px, ${dy}px)`;
+        void tokenEl.offsetWidth;
+        tokenEl.style.transition=`transform ${stepMs}ms linear`;
+        tokenEl.style.transform='translate(0px, 0px)';
+      }
+      stepIdx++;
+      setTimeout(doStep, stepMs);
+    }
+    doStep();
+  }
+
+  function walkForward(player, tIdx, fromPos, toPos, onDone){
+    const path=player===1?CFG.p1Path:CFG.p2Path;
+    const tokEl=(player===1?D.p1TokensDOM:D.p2TokensDOM)[tIdx];
+    const steps=[];
+    let curr=fromPos;
+    if(CFG.gridSize===5){
+      // Linear: just increment
+      while(curr!==toPos){curr=Math.min(curr+1,toPos);steps.push(curr);}
+    } else {
+      // 7x7 with wrap logic
+      while(curr!==toPos){
+        if(toPos>=24&&curr===22)curr=24;
+        else if(curr===23&&toPos<24)curr=0;
+        else curr++;
+        steps.push(curr);
+      }
+    }
+    const stepMs=steps.length>6?120:(steps.length>3?160:200);
+    executeSmoothSteps(tokEl, path, steps, stepMs, onDone);
+  }
+
+  function walkBackward(player, tIdx, fromPos, toPos, onDone){
+    const path=player===1?CFG.p1Path:CFG.p2Path;
+    const tokEl=(player===1?D.p1TokensDOM:D.p2TokensDOM)[tIdx];
+    const steps=[];
+    let curr=fromPos;
+    if(CFG.gridSize===5){
+      while(curr!==toPos){curr=Math.max(curr-1,toPos);steps.push(curr);}
+    } else {
+      while(curr!==toPos){
+        if(curr===24&&toPos<24)curr=22;
+        else if(curr===0&&toPos>0&&fromPos<24)curr=23;
+        else curr--;
+        steps.push(curr);
+      }
+    }
+    const stepMs=steps.length>6?120:(steps.length>3?160:200);
+    executeSmoothSteps(tokEl, path, steps, stepMs, onDone);
+  }
+
+  function animateEnter(tokenEl, cb){tokenEl.classList.remove('anim-killed','anim-bounced','anim-enter','anim-move','glow-move');void tokenEl.offsetWidth;tokenEl.classList.add('anim-enter');setTimeout(()=>{tokenEl.classList.remove('anim-enter');if(cb)cb();},450);}
+  function animateKill(tokenEl, cb){tokenEl.classList.remove('anim-killed','anim-bounced','anim-enter','anim-move','glow-move','victim-shudder');void tokenEl.offsetWidth;tokenEl.classList.add('victim-shudder');setTimeout(()=>{tokenEl.classList.remove('victim-shudder');if(cb)cb();},400);}
+  function animateBounce(tokenEl, cb){tokenEl.classList.remove('anim-killed','anim-bounced','anim-enter','anim-move','glow-move','victim-shudder');void tokenEl.offsetWidth;tokenEl.classList.add('victim-shudder');setTimeout(()=>{tokenEl.classList.remove('victim-shudder');if(cb)cb();},400);}
+
+  // =====================================================
+  // ROLL
+  // =====================================================
+  function rollGavvalu(playerNum){
+    SFX.init();
+    if(G.hasRolled||G.isGameOver||G.currentPlayer!==playerNum)return;
+    D.p1RollBtn.disabled=true;D.p2RollBtn.disabled=true;
+    stopTimer();SFX.play('roll');
+    const p=G.currentPlayer;
+    const is5x5 = (CFG.gridSize===5);
+
+    // Increment roll counter
+    let rollCount = p===1 ? ++G.p1RollCount : ++G.p2RollCount;
+
+    // Every 5th roll → guaranteed high value
+    // 5x5: alternates 4 (5th) → 8 (10th) → 4 (15th)...
+    // 7x7: alternates 6 (5th) → 12 (10th) → 6 (15th)...
+    const isGuaranteed = (rollCount % 5 === 0);
+    const cycle = Math.floor(rollCount/5);
+    const guaranteedVal = is5x5
+      ? (cycle % 2 === 1 ? 4 : 8)
+      : (cycle % 2 === 1 ? 6 : 12);
+
+    let base, states;
+
+    if(isGuaranteed){
+      if(is5x5){
+        if(guaranteedVal===4){
+          states=[true,true,true,true]; base=4;   // 4 borlas up
+        } else {
+          states=[false,false,false,false]; base=8; // all down → 8
         }
-    </script>
+      } else {
+        // 7x7
+        if(guaranteedVal===6){
+          states=[true,true,true,true]; base=6;    // 4 borlas up → 6
+        } else {
+          states=[false,false,false,false]; base=12; // all down → 12
+        }
+      }
+    } else {
+      // Normal random roll
+      states = Array.from({length:4}, ()=>Math.random()<0.5);
+      let borla = states.filter(Boolean).length;
+
+      if(is5x5){
+        // 5x5 normal values: 1, 2, 3 only (re-roll if 0 or 4)
+        while(borla===0 || borla===4){
+          for(let i=0;i<4;i++) states[i]=Math.random()<0.5;
+          borla = states.filter(Boolean).length;
+        }
+        base = borla; // 1, 2, or 3
+      } else {
+        // 7x7 normal values: 1, 2, 3 only (re-roll if 0 or 4 on non-guaranteed turns)
+        while(borla===0 || borla===4){
+          for(let i=0;i<4;i++) states[i]=Math.random()<0.5;
+          borla = states.filter(Boolean).length;
+        }
+        base = borla; // 1, 2, or 3
+      }
+    }
+
+    // Display shells
+    const shellsArr = p===1 ? D.shells.p1 : D.shells.p2;
+    for(let i=0;i<4;i++){
+      const el=shellsArr[i];
+      if(states[i]){el.className='shell-el down';el.textContent='บ';}
+      else{el.className='shell-el';el.textContent='🐚';}
+    }
+
+    // Revenge / bonus boost
+    let final=base;
+    if((p===1&&G.p1Revenge)||(p===2&&G.p2Revenge)){
+      final=boostedRoll(base);
+      if(p===1)G.p1Revenge=false; else G.p2Revenge=false;
+    } else if(p===1&&G.p1BonusPending){
+      if(computeScore(1)<computeScore(2)) final=boostedRoll(base);
+      G.p1BonusPending=false;
+    } else if(p===2&&G.p2BonusPending){
+      if(computeScore(2)<computeScore(1)) final=boostedRoll(base);
+      G.p2BonusPending=false;
+    }
+
+    // High roll = extra turn
+    const highRoll = is5x5 ? 8 : 12;
+    if(final===highRoll) G.extraTurns++;
+    G.currentRoll=final; G.hasRolled=true;
+    const activeBtn=p===1?D.p1RollBtn:D.p2RollBtn;
+    activeBtn.textContent=`🎲 ${final}`;
+
+    const vaultT=p===1?G.p1Tokens:G.p2Tokens;
+    const vaultIdxs=vaultT.reduce((a,v,i)=>v===-1?[...a,i]:a,[]);
+    const hasBoard=vaultT.some(pos=>pos!==-1&&pos<CFG.p1Path.length-1);
+
+    // Release logic — trigger values differ by board
+    const releaseHigh = is5x5 ? 8  : 12;
+    const releaseLow  = is5x5 ? 4  : 6;
+
+    if(final===releaseHigh&&vaultIdxs.length>=2&&!hasBoard){registerAction(()=>doReleaseTwoVault(p,vaultIdxs[0],vaultIdxs[1]),900);return;}
+    if(final===releaseHigh&&vaultIdxs.length===1&&!hasBoard){registerAction(()=>doReleaseAndHigh(p,vaultIdxs[0]),900);return;}
+    if((final===releaseLow||final===releaseHigh)&&vaultIdxs.length>0&&!hasBoard){registerAction(()=>doReleaseOne(p,vaultIdxs[0]),900);return;}
+
+    const movable=getMovable(final);
+    const canRelease=(final===releaseLow||final===releaseHigh)&&vaultIdxs.length>0;
+    if(!movable.length&&!canRelease){ registerAction(()=>afterMove(),1100); }
+    else if(movable.length===1&&!canRelease){ registerAction(()=>moveToken(p,movable[0].idx),900); }
+    else{
+      updateBoard(); startTimer();
+      if(G.gameMode==='AI'&&p===2){ registerAction(()=>executeAIMove(p,final,movable,canRelease,vaultIdxs),700); }
+    }
+  }
+
+  // =====================================================
+  // AI
+  // =====================================================
+  function executeAIMove(p, finalRoll, movable, canRelease, vaultIdxs){
+    if(G.isGameOver||G.currentPlayer!==p||!G.hasRolled)return;
+    const is5x5=CFG.gridSize===5;
+    const crownIdx=CFG.p1Path.length-1;
+    const path=p===1?CFG.p1Path:CFG.p2Path;
+    const oppPath=p===1?CFG.p2Path:CFG.p1Path;
+    const myTokens=p===1?G.p1Tokens:G.p2Tokens;
+    const oppTokens=p===1?G.p2Tokens:G.p1Tokens;
+    const perm=hasPerm(p);
+
+    let options=[];
+
+    // === VAULT RELEASE ===
+    if(canRelease&&vaultIdxs.length>0){
+      const onBoard=myTokens.filter(pos=>pos!==-1&&pos<crownIdx).length;
+      // Release priority: high if no tokens on board, lower if we have tokens advancing
+      const releaseScore = onBoard===0 ? 120 : onBoard===1 ? 60 : 20;
+      vaultIdxs.forEach(idx=>options.push({type:'vault',idx,score:releaseScore}));
+    }
+
+    // === BOARD MOVES ===
+    movable.forEach(m=>{
+      // vault bounce = bad, avoid if possible
+      if(m.targetPos===-2){ options.push({type:'board',idx:m.idx,score:-500}); return; }
+
+      let score=0;
+      const destCoord=path[m.targetPos];
+      const fromPos=myTokens[m.idx];
+
+      // 1. Progress score — further along = better
+      score += m.targetPos * (is5x5 ? 3 : 1.5);
+
+      // 2. Kill opponent — highest priority
+      const canKill=!CFG.safeZones.includes(destCoord)&&
+        oppTokens.some(op=>op!==-1&&oppPath[op]===destCoord);
+      if(canKill){
+        // Check if opponent is shielded in orange
+        const oppShielded=(p===1&&G.orangeFirstP2Coord[destCoord])||
+                          (p===2&&G.orangeFirstP1Coord[destCoord]);
+        if(oppShielded) score -= 300; // bouncing into shield = bad
+        else score += 400;            // kill = great
+      }
+
+      // 3. Crown exact landing — top priority
+      if(m.targetPos===crownIdx) score += 1000;
+
+      // 4. Avoid redhole
+      if(destCoord===activeRedhole) score -= 800;
+
+      // 5. Portal — good if not near crown
+      if(destCoord===activePortal && m.targetPos<crownIdx-CFG.portalJump) score += 150;
+
+      // 6. Safe zone — good defensive move
+      if(CFG.safeZones.includes(destCoord)) score += 50;
+
+      // 7. Orange zone — first arrival is good (gets shield)
+      if(isOrangeCoord(destCoord)){
+        const myShieldHere=(p===1&&G.orangeFirstP1Coord[destCoord])||
+                           (p===2&&G.orangeFirstP2Coord[destCoord]);
+        const oppShieldHere=(p===1&&G.orangeFirstP2Coord[destCoord])||
+                            (p===2&&G.orangeFirstP1Coord[destCoord]);
+        if(!myShieldHere&&!oppShieldHere) score += 80; // claim shield
+        if(myShieldHere) score -= 200;                 // self kill danger
+        if(oppShieldHere) score -= 300;                // will bounce back
+      }
+
+      // 8. Avoid sitting next to opponent on non-safe cell (they might kill us next)
+      const oppAdjacent=oppTokens.some(op=>{
+        if(op===-1) return false;
+        const oc=oppPath[op];
+        return !CFG.safeZones.includes(oc)&&oc===destCoord;
+      });
+      if(oppAdjacent && !canKill) score -= 100;
+
+      // 9. Permission gate — prioritise getting permission (kill/portal)
+      if(!perm && m.targetPos===CFG.layer2GateIdx) score += 10;
+
+      options.push({type:'board',idx:m.idx,score});
+    });
+
+    if(!options.length){afterMove();return;}
+    options.sort((a,b)=>b.score-a.score);
+
+    // Pick best — add slight randomness among top tied options
+    const top=options[0].score;
+    const best=options.filter(o=>Math.abs(o.score-top)<30);
+    const choice=best[Math.floor(Math.random()*best.length)];
+
+    if(choice.type==='vault') releaseFromVault(p,choice.idx,null);
+    else moveToken(p,choice.idx,null);
+  }
+
+  // =====================================================
+  // VAULT RELEASE
+  // =====================================================
+  function doReleaseTwoVault(p,i1,i2){
+    // Roll=high (8/12): both coins in vault, none on board
+    // Release BOTH at pos 0 (start). That's it — no extra movement.
+    // The "high" roll value already gave extra turn, player uses next turn to move.
+    if(!G.hasRolled||G.currentPlayer!==p||G.isGameOver)return;
+    clearActionTimeouts();stopTimer();
+    const t=p===1?G.p1Tokens:G.p2Tokens;
+    const path=p===1?CFG.p1Path:CFG.p2Path;
+    t[i1]=0;
+    t[i2]=0;
+    updateBoard();
+    [D.p1TokensDOM,D.p2TokensDOM][p-1].forEach((tok,i)=>{
+      if(i===i1||i===i2) animateEnter(tok,null);
+    });
+    sparkle(path[0]);SFX.play('move');
+    checkKill(p,path[0],()=>afterMove());
+  }
+  function doReleaseOne(p,idx){
+    if(!G.hasRolled||G.currentPlayer!==p||G.isGameOver)return;
+    clearActionTimeouts();stopTimer();
+    const t=p===1?G.p1Tokens:G.p2Tokens;
+    t[idx]=0;
+    updateBoard();
+    animateEnter((p===1?D.p1TokensDOM:D.p2TokensDOM)[idx],null);
+    sparkle((p===1?CFG.p1Path:CFG.p2Path)[0]);SFX.play('move');
+    checkKill(p,(p===1?CFG.p1Path:CFG.p2Path)[0],()=>afterMove());
+  }
+  function doReleaseAndHigh(p,idx){
+    // 5x5 roll=8, 1 vault token: release at start (pos 0) then move 4 steps → land at pos 4
+    // 7x7 roll=12, 1 vault token: release at start (pos 0) then move 6 steps → land at pos 6
+    if(!G.hasRolled||G.currentPlayer!==p||G.isGameOver)return;
+    clearActionTimeouts();stopTimer();
+    const t=p===1?G.p1Tokens:G.p2Tokens;
+    const path=p===1?CFG.p1Path:CFG.p2Path;
+    const is5x5=CFG.gridSize===5;
+    // First place at 0 (start), then walk forward
+    t[idx]=0;
+    updateBoard();
+    animateEnter((p===1?D.p1TokensDOM:D.p2TokensDOM)[idx],()=>{
+      // After enter animation, walk forward
+      const steps=is5x5?4:6;
+      const landPos=Math.min(steps, path.length-2);
+      walkForward(p,idx,0,landPos,()=>{
+        t[idx]=landPos;
+        updateOrangeFirst(p,idx,landPos);
+        updateBoard();
+        sparkle(path[landPos]);
+        checkKill(p,path[landPos],()=>afterMove());
+      });
+    });
+    SFX.play('move');
+  }
+  function releaseFromVault(p,idx,e){
+    if(e){e.stopPropagation();e.preventDefault();}
+    if(!G.hasRolled||G.currentPlayer!==p||G.isGameOver)return;
+    clearActionTimeouts();
+    const r=G.currentRoll, t=p===1?G.p1Tokens:G.p2Tokens;
+    const vIdxs=t.reduce((a,v,i)=>v===-1?[...a,i]:a,[]);
+    const is5x5=CFG.gridSize===5;
+    const releaseHigh=is5x5?8:12;
+    const releaseLow=is5x5?4:6;
+    if(r===releaseHigh&&vIdxs.length>=2){doReleaseTwoVault(p,vIdxs[0],vIdxs[1]);return;}
+    if(r===releaseHigh&&vIdxs.length===1){doReleaseAndHigh(p,idx);return;}
+    if((r===releaseLow||r===releaseHigh)&&t[idx]===-1){doReleaseOne(p,idx);}
+  }
+
+  // =====================================================
+  // MOVE TOKEN
+  // =====================================================
+  function updateOrangeFirst(player, tIdx, newPos){
+    if(!isInOrange(newPos, player)) return;
+    const path = player===1 ? CFG.p1Path : CFG.p2Path;
+    const coord = path[newPos];
+    // Register first arrival — only if nobody has claimed this cell yet
+    if(!G.orangeFirstP1Coord[coord] && !G.orangeFirstP2Coord[coord]){
+      if(player===1) G.orangeFirstP1Coord[coord] = true;
+      else           G.orangeFirstP2Coord[coord] = true;
+    }
+  }
+
+  function moveToken(p, tIdx, e){
+    if(e){e.stopPropagation();e.preventDefault();}
+    if(!G.hasRolled||G.currentPlayer!==p||G.isGameOver)return;
+    const t=p===1?G.p1Tokens:G.p2Tokens;
+    const c=getMovable(G.currentRoll).find(m=>m.idx===tIdx);
+    if(!c)return;
+    clearActionTimeouts();stopTimer();
+    const fromPos=t[tIdx];
+    const path=p===1?CFG.p1Path:CFG.p2Path;
+    const rawNx=c.targetPos;
+    const lC=path[rawNx];
+
+    // Portal
+    if(lC===activePortal){
+      if(p===1)G.p1PortalUsed=true;else G.p2PortalUsed=true;
+      const oPath=p===1?CFG.p2Path:CFG.p1Path;
+      const oT=p===1?G.p2Tokens:G.p1Tokens;
+      const t10=getNextPosWithPerm(rawNx,CFG.portalJump);
+      const c10=path[t10];
+      const hasOpp=oT.some(op=>op!==-1&&oPath[op]===c10);
+      const finalNx=hasOpp?getNextPosWithPerm(rawNx,CFG.portalJump+1):t10;
+      SFX.play('move');
+      walkForward(p,tIdx,fromPos,rawNx,()=>{
+        const tokEl=(p===1?D.p1TokensDOM:D.p2TokensDOM)[tIdx];
+        tokEl.classList.add('anim-portal-launch');
+        SFX.play('portal');
+        setTimeout(()=>{
+          tokEl.classList.remove('anim-portal-launch');
+          removePortal();
+          t[tIdx]=finalNx;
+          updateOrangeFirst(p,tIdx,finalNx);
+          updateBoard();
+          tokEl.classList.add('anim-portal-land');
+          sparkle(path[finalNx]);
+          setTimeout(()=>{
+            tokEl.classList.remove('anim-portal-land');
+            checkKill(p,path[finalNx],()=>afterMove());
+          },420);
+        },420);
+      });
+      return;
+    }
+
+    // Red Hole — capture coord immediately before any async
+    if(lC===activeRedhole){
+      const capturedRedhole=activeRedhole; // freeze it before timer can clear it
+      SFX.play('move');
+      walkForward(p,tIdx,fromPos,rawNx,()=>{
+        const tokEl=(p===1?D.p1TokensDOM:D.p2TokensDOM)[tIdx];
+        tokEl.classList.add('anim-redhole-sink');
+        shakeBoard();SFX.play('redhole');
+        setTimeout(()=>{
+          tokEl.classList.remove('anim-redhole-sink');
+          // Remove redhole using captured coord in case activeRedhole was already cleared
+          if(D.redholeEl&&D.redholeEl.parentNode)D.redholeEl.parentNode.removeChild(D.redholeEl);
+          clearTimeout(redholeTimer);activeRedhole=null;
+          t[tIdx]=0; // send straight to start
+          updateBoard();
+          checkKill(p,path[0],()=>afterMove());
+        },520);
+      });
+      return;
+    }
+
+    // Normal move
+    SFX.play('move');
+    walkForward(p,tIdx,fromPos,rawNx,()=>{
+      t[tIdx]=rawNx;
+      updateOrangeFirst(p,tIdx,rawNx);
+      updateBoard();
+      sparkle(path[rawNx]);
+      checkKill(p,path[rawNx],()=>afterMove());
+    });
+  }
+
+  function afterMove(){
+    G.hasRolled=false;
+    if(G.extraTurns>0){G.extraTurns--;resetRoll();}
+    else switchTurn(false);
+  }
+
+  // =====================================================
+  // KILL LOGIC
+  // =====================================================
+  /*
+    Orange Zone Rules:
+    - First coin to arrive on orange cell gets SHIELD (any team)
+    - Same team coin lands on same shielded orange cell → SELF KILL → vault
+    - Opponent coin lands on shielded orange cell → BOUNCED to start
+    - Normal cells: opponent kills (standard), 2+ same team = incoming bounced
+  */
+  function checkKill(movingP, coord, doneCb){
+    if(CFG.safeZones.includes(coord)){if(doneCb)doneCb();return;}
+
+    // Count how many tokens from each player are physically on this coord
+    // Each player's tokens are tracked on their OWN path
+    const p1at=G.p1Tokens.filter(pos=>pos!==-1&&CFG.p1Path[pos]===coord).length;
+    const p2at=G.p2Tokens.filter(pos=>pos!==-1&&CFG.p2Path[pos]===coord).length;
+
+    // No conflict if only one team present
+    if(!p1at||!p2at){if(doneCb)doneCb();return;}
+
+    const p1pts=computeScore(1), p2pts=computeScore(2);
+    const isOrange=isOrangeCoord(coord);
+
+    // Who owns the shield on this orange cell?
+    // orangeFirstP1Coord[coord]=true means P1 arrived first
+    // orangeFirstP2Coord[coord]=true means P2 arrived first
+    const orangeOwnerP1=isOrange&&!!G.orangeFirstP1Coord[coord];
+    const orangeOwnerP2=isOrange&&!!G.orangeFirstP2Coord[coord];
+
+    SFX.play('kill'); shakeBoard();
+
+    if(movingP===1){
+      // P1 just moved onto coord where P2 coin(s) exist
+
+      if(orangeOwnerP2){
+        // P2 owns shield → P1 incoming bounces to HOME (start, pos=0)
+        SFX.play('shield');
+        const bi=G.p1Tokens.findIndex(pos=>pos!==-1&&CFG.p1Path[pos]===coord);
+        if(bi!==-1){
+          animateBounce(D.p1TokensDOM[bi],()=>{
+            G.p1Tokens[bi]=0; // home (start)
+            G.p2Kills++;
+            if(p1pts<p2pts)G.p1Revenge=true;
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+        return;
+      }
+
+      if(orangeOwnerP1){
+        // P1 owns shield → P1's OWN second coin landed here = SELF KILL
+        const allP1Here=G.p1Tokens.reduce((a,pos,i)=>
+          pos!==-1&&CFG.p1Path[pos]===coord?[...a,i]:a,[]);
+        const ski=allP1Here.length>=2?allP1Here[0]:-1;
+        if(ski!==-1){
+          animateBounce(D.p1TokensDOM[ski],()=>{
+            G.p1Tokens[ski]=-1; // vault
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+        return;
+      }
+
+      // Non-orange cell — normal rules
+      if(p2at>=2){
+        // 2+ P2 coins = P1 bounces
+        const bi=G.p1Tokens.findIndex(pos=>pos!==-1&&CFG.p1Path[pos]===coord);
+        if(bi!==-1){
+          animateBounce(D.p1TokensDOM[bi],()=>{
+            G.p1Tokens[bi]=-1;
+            G.p2Kills++;if(p1pts<p2pts)G.p1Revenge=true;
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+      }else{
+        // P1 kills P2
+        const vi=G.p2Tokens.findIndex(pos=>pos!==-1&&CFG.p2Path[pos]===coord);
+        if(vi!==-1){
+          animateKill(D.p2TokensDOM[vi],()=>{
+            G.p2Tokens[vi]=-1;G.p1Kills++;
+            G.p1BonusPending=true;G.extraTurns++;
+            if(p2pts<p1pts)G.p2Revenge=true;
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+      }
+
+    }else{
+      // P2 just moved onto coord where P1 coin(s) exist
+
+      if(orangeOwnerP1){
+        // P1 owns shield → P2 incoming bounces to HOME (start, pos=0)
+        SFX.play('shield');
+        const bi=G.p2Tokens.findIndex(pos=>pos!==-1&&CFG.p2Path[pos]===coord);
+        if(bi!==-1){
+          animateBounce(D.p2TokensDOM[bi],()=>{
+            G.p2Tokens[bi]=0; // home (start)
+            G.p1Kills++;
+            if(p2pts<p1pts)G.p2Revenge=true;
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+        return;
+      }
+
+      if(orangeOwnerP2){
+        // P2 owns shield → P2's OWN second coin landed = SELF KILL
+        const allP2Here=G.p2Tokens.reduce((a,pos,i)=>
+          pos!==-1&&CFG.p2Path[pos]===coord?[...a,i]:a,[]);
+        const ski=allP2Here.length>=2?allP2Here[0]:-1;
+        if(ski!==-1){
+          animateBounce(D.p2TokensDOM[ski],()=>{
+            G.p2Tokens[ski]=-1; // vault
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+        return;
+      }
+
+      // Non-orange cell — normal rules
+      if(p1at>=2){
+        // 2+ P1 coins = P2 bounces
+        const bi=G.p2Tokens.findIndex(pos=>pos!==-1&&CFG.p2Path[pos]===coord);
+        if(bi!==-1){
+          animateBounce(D.p2TokensDOM[bi],()=>{
+            G.p2Tokens[bi]=-1;
+            G.p1Kills++;if(p2pts<p1pts)G.p2Revenge=true;
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+      }else{
+        // P2 kills P1
+        const vi=G.p1Tokens.findIndex(pos=>pos!==-1&&CFG.p1Path[pos]===coord);
+        if(vi!==-1){
+          animateKill(D.p1TokensDOM[vi],()=>{
+            G.p1Tokens[vi]=-1;G.p2Kills++;
+            G.p2BonusPending=true;G.extraTurns++;
+            if(p1pts<p2pts)G.p1Revenge=true;
+            updateBoard();if(doneCb)doneCb();
+          });
+        }else{if(doneCb)doneCb();}
+      }
+    }
+  }
+
+  // =====================================================
+  // TURN MANAGEMENT
+  // =====================================================
+  function switchTurn(noMove){
+    if(G.isGameOver)return;
+    G.currentPlayer=G.currentPlayer===1?2:1;
+    G.hasRolled=false;G.currentRoll=0;
+    resetRoll();
+  }
+
+  function resetRoll(){
+    if(G.isGameOver)return;
+    const p=G.currentPlayer;
+    D.p1RollBtn.disabled=(p!==1);
+    D.p2RollBtn.disabled=(p!==2)||(G.gameMode==='AI');
+    D.p1RollBtn.textContent=p===1?'🎲 రోల్':'🎲 వెయిట్ ⏳';
+    D.p2RollBtn.textContent=p===2?'🎲 రోల్':'🎲 వెయిట్ ⏳';
+    const p1C=G.theme==='blue-red'?'c-blue':'c-red';
+    const p2C=G.theme==='blue-red'?'c-red':'c-blue';
+    D.p1Dot.className=`turn-dot ${p===1?p1C:'dim'}`;
+    D.p1Label.className=`turn-label ${p===1?p1C:'dim'}`;
+    D.p2Dot.className=`turn-dot ${p===2?p2C:'dim'}`;
+    D.p2Label.className=`turn-label ${p===2?p2C:'dim'}`;
+    ['p1','p2'].forEach(player=>{
+      const arr=player==='p1'?D.shells.p1:D.shells.p2;
+      for(let i=0;i<4;i++){arr[i].className='shell-el';arr[i].textContent='🐚';}
+    });
+    updateBoard();startTimer();
+    if(G.gameMode==='AI'&&p===2&&!G.isGameOver)registerAction(()=>{rollGavvalu(p);},700);
+  }
+
+  // =====================================================
+  // SCORE & METERS
+  // =====================================================
+  function computeScore(player){
+    const tokens=player===1?G.p1Tokens:G.p2Tokens;
+    const total=CFG.p1Path.length-1;
+    let score=0,onBoard=0;
+    for(let i=0;i<4;i++){
+      const pos=tokens[i];
+      if(pos===-1){score-=2;}
+      else if(pos===total){score+=100;}
+      else{score+=(pos/total)*90;onBoard++;}
+    }
+    const kills=player===1?G.p1Kills:G.p2Kills;
+    score+=kills*8;
+    if(hasPerm(player))score+=6;
+    const bonus=player===1?G.p1BonusPending:G.p2BonusPending;
+    if(bonus)score+=4;
+    score+=onBoard*3;
+    return Math.max(0,score);
+  }
+
+  function updateMeters(){
+    D.p1Kills.textContent=G.p1Kills;D.p2Kills.textContent=G.p2Kills;
+    D.p1Perm.textContent=hasPerm(1)?'✅':'❌';D.p2Perm.textContent=hasPerm(2)?'✅':'❌';
+    const s1=computeScore(1),s2=computeScore(2),total=s1+s2;
+    let p1Pct=total<=0?50:Math.round((s1/total)*100);
+    p1Pct=Math.max(5,Math.min(95,p1Pct));
+    const p2Pct=100-p1Pct;
+    D.mP1.style.width=p1Pct+'%';D.mP2.style.width=p2Pct+'%';
+    D.mP1.textContent=p1Pct>15?p1Pct+'%':'';D.mP2.textContent=p2Pct>15?p2Pct+'%':'';
+    if(D.predP1Pct)D.predP1Pct.textContent=p1Pct;
+    if(D.predP2Pct)D.predP2Pct.textContent=p2Pct;
+  }
+
+  // =====================================================
+  // WIN CHECK
+  // =====================================================
+  function checkWinner(){
+    if(G.p1Timeouts>=4||G.p2Timeouts>=4)return;
+    const crown=CFG.p1Path.length-1;
+    const p1win=G.p1Tokens.every(p=>p===crown);
+    const p2win=G.p2Tokens.every(p=>p===crown);
+    if(!p1win&&!p2win)return;
+    G.isGameOver=true;stopTimer();clearGameLoops();clearActionTimeouts();
+    SFX.play('win');triggerConfetti();
+    const p1Name=G.theme==='blue-red'?'BLUE':'RED';
+    const p2Name=G.theme==='blue-red'?'RED':'BLUE';
+    showRestartScreen(`${p1win?p1Name:p2Name} గెలిచారు! 👑`,`అభినందనలు! 🎉`);
+  }
+
+  // =====================================================
+  // BOARD RENDER
+  // =====================================================
+  function buildBoard(){
+    D.board.innerHTML='';
+    D.cells={};
+    // Remove old token DOM if any
+    D.p1TokensDOM=[];D.p2TokensDOM=[];D.p1VaultDOM=[];D.p2VaultDOM=[];
+
+    // Set grid class
+    D.board.className='board '+CFG.boardClass;
+
+    const gs=CFG.gridSize;
+    const layer2Coords=CFG.p1Path.slice(CFG.layer2StartIdx, CFG.layer2EndIdx);
+
+    // Build orange coord set:
+    // 5x5: use the explicit orangeCoords5x5 set (4 crown neighbors = layer 3)
+    // 7x7: use index-based slice from both paths
+    let orangeCoords;
+    if(CFG.gridSize===5){
+      orangeCoords=CFG.orangeCoords5x5;
+    } else {
+      orangeCoords=new Set();
+      CFG.p1Path.slice(CFG.orangeStartIdx, CFG.orangeEndIdx+1).forEach(c=>orangeCoords.add(c));
+      CFG.p2Path.slice(CFG.orangeStartIdx, CFG.orangeEndIdx+1).forEach(c=>orangeCoords.add(c));
+    }
+
+    for(let r=1;r<=gs;r++){
+      for(let c=1;c<=gs;c++){
+        const cell=document.createElement('div');
+        cell.className='cell';
+        cell.style.gridRow=r;
+        cell.style.gridColumn=c;
+        const coord=`${r},${c}`;
+        if(coord===CFG.centerCoord){
+          cell.classList.add('cell-center');
+          const crown=document.createElement('span');
+          crown.className='crown-emoji';
+          crown.textContent='👑';
+          cell.appendChild(crown);
+        } else if(CFG.safeZones.includes(coord)){
+          // For 5x5: safe zones are on outer ring (edge-centers)
+          // For 7x7: safe zones are corner-ish positions
+          cell.classList.add('cell-safe');
+        } else if(orangeCoords.has(coord)){
+          // Layer 3 for 5x5 (crown box), or inner zone for 7x7
+          cell.classList.add('cell-orange');
+          if(CFG.gridSize===5){
+            // Give orange box a visible border to show it's the final danger zone
+            cell.style.border='2px solid #f97316';
+          }
+        } else if(layer2Coords.includes(coord)){
+          // Layer 2: all yellow for 5x5, inner ring for 7x7
+          cell.classList.add('cell-yellow');
+        }
+        if(CFG.arrowUp.includes(coord))cell.classList.add('arrow-up');
+        if(CFG.arrowDown.includes(coord))cell.classList.add('arrow-down');
+        D.board.appendChild(cell);
+        D.cells[coord]=cell;
+      }
+    }
+
+    // Rebuild token DOM elements
+    D.p1Vault.innerHTML='';D.p2Vault.innerHTML='';
+    for(let i=0;i<4;i++){
+      const t1=document.createElement('div');t1.dataset.player="1";t1.dataset.idx=i;
+      const v1=document.createElement('div');v1.dataset.player="1";v1.dataset.idx=i;
+      D.p1TokensDOM.push(t1);D.p1VaultDOM.push(v1);
+      const t2=document.createElement('div');t2.dataset.player="2";t2.dataset.idx=i;
+      const v2=document.createElement('div');v2.dataset.player="2";v2.dataset.idx=i;
+      D.p2TokensDOM.push(t2);D.p2VaultDOM.push(v2);
+    }
+  }
+
+  function updateBoard(){
+    const p=G.currentPlayer,r=G.currentRoll;
+    const mov=G.hasRolled?getMovable(r):[];
+    const movI=mov.map(m=>m.idx);
+    const p1Stack={},p2Stack={};
+    for(let i=0;i<4;i++){
+      if(G.p1Tokens[i]!==-1){const coord=CFG.p1Path[G.p1Tokens[i]];p1Stack[coord]=(p1Stack[coord]||0)+1;}
+      if(G.p2Tokens[i]!==-1){const coord=CFG.p2Path[G.p2Tokens[i]];p2Stack[coord]=(p2Stack[coord]||0)+1;}
+    }
+    document.querySelectorAll('.token').forEach(t=>t.remove());
+    const p1Placed={},p2Placed={};
+    for(let i=0;i<4;i++){
+      // P1
+      const pos1=G.p1Tokens[i];
+      if(pos1===-1){
+        D.p1Vault.appendChild(D.p1TokensDOM[i]);
+        D.p1TokensDOM[i].className='token p1-token';
+        const ob=D.p1TokensDOM[i].querySelector('.stack-count');if(ob)ob.remove();
+      }else{
+        const coord=CFG.p1Path[pos1];
+        if(coord&&D.cells[coord]){
+          const stackCount=p1Stack[coord];
+          if(!p1Placed[coord]){
+            p1Placed[coord]=true;
+            D.cells[coord].appendChild(D.p1TokensDOM[i]);
+            D.p1TokensDOM[i].className='token p1-token';
+            if(isInOrange(pos1,1)&&G.orangeFirstP1Coord[coord])D.p1TokensDOM[i].classList.add('shielded');
+            if(p===1&&G.hasRolled&&movI.includes(i))D.p1TokensDOM[i].classList.add('glow-move');
+            const ob=D.p1TokensDOM[i].querySelector('.stack-count');if(ob)ob.remove();
+            if(stackCount>=2){const badge=document.createElement('span');badge.className='stack-count';badge.textContent=stackCount;D.p1TokensDOM[i].appendChild(badge);}
+          }
+        }
+      }
+      // P2
+      const pos2=G.p2Tokens[i];
+      if(pos2===-1){
+        D.p2Vault.appendChild(D.p2TokensDOM[i]);
+        D.p2TokensDOM[i].className='token p2-token';
+        const ob=D.p2TokensDOM[i].querySelector('.stack-count');if(ob)ob.remove();
+      }else{
+        const coord=CFG.p2Path[pos2];
+        if(coord&&D.cells[coord]){
+          const stackCount=p2Stack[coord];
+          if(!p2Placed[coord]){
+            p2Placed[coord]=true;
+            D.cells[coord].appendChild(D.p2TokensDOM[i]);
+            D.p2TokensDOM[i].className='token p2-token';
+            if(isInOrange(pos2,2)&&G.orangeFirstP2Coord[coord])D.p2TokensDOM[i].classList.add('shielded');
+            if(p===2&&G.hasRolled&&movI.includes(i))D.p2TokensDOM[i].classList.add('glow-move');
+            const ob=D.p2TokensDOM[i].querySelector('.stack-count');if(ob)ob.remove();
+            if(stackCount>=2){const badge=document.createElement('span');badge.className='stack-count';badge.textContent=stackCount;D.p2TokensDOM[i].appendChild(badge);}
+          }
+        }
+      }
+    }
+    updateMeters();checkWinner();saveGameState();
+  }
+
+  // =====================================================
+  // DOM INIT
+  // =====================================================
+  function initDOM(){
+    D.board=document.getElementById('game-board');
+    D.p1Vault=document.getElementById('p1-vault-tokens');
+    D.p2Vault=document.getElementById('p2-vault-tokens');
+    D.p1RollBtn=document.getElementById('p1-roll-btn');
+    D.p2RollBtn=document.getElementById('p2-roll-btn');
+    D.p1TimerWrap=document.getElementById('p1-timer-wrap');
+    D.p2TimerWrap=document.getElementById('p2-timer-wrap');
+    D.p1Dot=document.getElementById('p1-dot');D.p2Dot=document.getElementById('p2-dot');
+    D.p1Label=document.getElementById('p1-label');D.p2Label=document.getElementById('p2-label');
+    D.p1Kills=document.getElementById('p1-kills');D.p2Kills=document.getElementById('p2-kills');
+    D.p1Perm=document.getElementById('p1-perm');D.p2Perm=document.getElementById('p2-perm');
+    D.mP1=document.getElementById('m-p1');D.mP2=document.getElementById('m-p2');
+    D.predP1Pct=document.getElementById('pred-p1-pct');
+    D.predP2Pct=document.getElementById('pred-p2-pct');
+    D.p1Strikes=document.getElementById('p1-strikes');D.p2Strikes=document.getElementById('p2-strikes');
+    D.boardSizeBadge=document.getElementById('board-size-badge');
+    for(let i=0;i<4;i++){
+      D.shells.p1.push(document.getElementById(`p1-s${i}`));
+      D.shells.p2.push(document.getElementById(`p2-s${i}`));
+    }
+    D.portalEl=document.createElement('div');D.portalEl.className='portal-layer';D.portalEl.textContent='🌀';
+    D.redholeEl=document.createElement('div');D.redholeEl.className='redhole-layer';D.redholeEl.textContent='🔥';
+
+    D.audioBtn=document.getElementById('audio-btn');
+    D.audioBtn.addEventListener('click',()=>{
+      SFX.volMode=(SFX.volMode-1+3)%3;
+      if(SFX.volMode===2)D.audioBtn.textContent='🔊';
+      else if(SFX.volMode===1)D.audioBtn.textContent='🔉';
+      else D.audioBtn.textContent='🔇';
+    });
+
+    D.board.addEventListener('click',handleTokenClick);
+    D.p1Vault.addEventListener('click',handleVaultClick);
+    D.p2Vault.addEventListener('click',handleVaultClick);
+    D.p1RollBtn.addEventListener('click',()=>rollGavvalu(1));
+    D.p2RollBtn.addEventListener('click',()=>rollGavvalu(2));
+  }
+
+  function handleTokenClick(e){const tok=e.target.closest('.token');if(!tok||G.isGameOver)return;const p=parseInt(tok.dataset.player,10);if(G.gameMode==='AI'&&p===2)return;moveToken(p,parseInt(tok.dataset.idx,10),e);}
+  function handleVaultClick(e){const tok=e.target.closest('.token');if(!tok||G.isGameOver)return;const p=parseInt(tok.dataset.player,10);if(G.gameMode==='AI'&&p===2)return;releaseFromVault(p,parseInt(tok.dataset.idx,10),e);}
+
+  // =====================================================
+  // SCREENS & SETUP
+  // =====================================================
+  function applyThemeUI(){
+    document.body.dataset.theme=G.theme;
+    const isBR=G.theme==='blue-red';
+    const p1Emoji=isBR?'🔵':'🔴';
+    const p2Emoji=isBR?'🔴':'🔵';
+    D.p1Label.textContent=`${isBR?'BLUE':'RED'} వంతు`;
+    D.p2Label.textContent=`${isBR?'RED':'BLUE'} వంతు`;
+    document.getElementById('pred-header-text').innerHTML=`గెలుపు అంచనా — ${p1Emoji} <span id="pred-p1-pct">50</span>% vs ${p2Emoji} <span id="pred-p2-pct">50</span>%`;
+    // Re-cache after innerHTML swap
+    D.predP1Pct=document.getElementById('pred-p1-pct');
+    D.predP2Pct=document.getElementById('pred-p2-pct');
+  }
+
+  function showSetupStep(step){
+    document.getElementById('step-board').style.display=(step===0)?'flex':'none';
+    document.getElementById('step-mode').style.display=(step===1)?'flex':'none';
+    document.getElementById('step-color').style.display=(step===2)?'flex':'none';
+    document.getElementById('step-ready').style.display=(step===3)?'flex':'none';
+    currentSetupStep=step;
+    if(step===3){
+      const boardLabel=tempSetup.boardMode==='5x5'?'⬛ 5×5 Mode':'🏆 7×7 Mode';
+      const modeLabel=tempSetup.mode==='2P'?'👥 Two Players':'🤖 Human vs AI';
+      let colorLine='';
+      if(tempSetup.mode==='AI'){
+        colorLine=`<span style="font-size:14px;color:#aaa;display:block;margin-top:8px;">మీరు: ${tempSetup.hColor===1?'🔴 RED':'🔵 BLUE'} | Bot: ${tempSetup.aColor===1?'🔴 RED':'🔵 BLUE'}</span>`;
+      }
+      document.getElementById('ready-summary').innerHTML=`${boardLabel}<br>${modeLabel}${colorLine}`;
+    }
+  }
+
+  function showRestartScreen(title, sub){
+    clearGameState();clearGameLoops();clearActionTimeouts();
+    // Save result to Firebase
+    const p1Won = title.includes(G.theme==='blue-red'?'BLUE':'RED');
+    const myKills = G.p1Kills;
+    if(typeof window.saveGameResult === 'function'){
+      window.saveGameResult(p1Won, myKills);
+    }
+    setTimeout(()=>{
+      document.getElementById('rs-title').textContent=title;
+      document.getElementById('rs-sub').textContent=sub;
+      document.getElementById('main-game').style.display='none';
+      document.getElementById('restart-screen').style.display='flex';
+    },3000);
+  }
+
+  function startFreshGame(){
+    SFX.init();
+    CFG=BOARD_CONFIGS[tempSetup.boardMode];
+    _orangeCoordSet=null; // reset cache for new board
+    G=getInitialState();
+    G.boardMode=tempSetup.boardMode;  // ✅ set after getInitialState
+    G.gameMode=tempSetup.mode;
+    G.theme=tempSetup.hColor===2?'blue-red':'red-blue';
+
+    applyThemeUI();
+    buildBoard();
+
+    // Update board size badge
+    D.boardSizeBadge.textContent=tempSetup.boardMode==='5x5'?'⬛ 5×5':'🏆 7×7';
+    D.boardSizeBadge.style.display='block';
+
+    document.getElementById('setup-screen').style.opacity='0';
+    document.getElementById('start-screen').style.opacity='0';
+    setTimeout(()=>{
+      document.getElementById('setup-screen').style.display='none';
+      document.getElementById('start-screen').style.display='none';
+      document.getElementById('main-game').style.display='flex';
+      updateStrikeDisplay();startGameLoops();resetRoll();saveGameState();
+    },300);
+  }
+
+  function restartGame(){
+    stopTimer();clearGameLoops();clearActionTimeouts();clearGameState();
+    G=getInitialState();
+    document.getElementById('restart-screen').style.display='none';
+    document.getElementById('main-game').style.display='none';
+    const setupEl=document.getElementById('setup-screen');
+    setupEl.style.display='flex';setupEl.style.opacity='0';
+    showSetupStep(0);
+    requestAnimationFrame(()=>{setupEl.style.opacity='1';});
+  }
+
+  function goToSetupFromGame(){
+    stopTimer();clearGameLoops();clearActionTimeouts();clearGameState();
+    G=getInitialState();
+    document.getElementById('main-game').style.display='none';
+    document.getElementById('restart-screen').style.display='none';
+    document.getElementById('quit-modal').style.display='none';
+    const setupEl=document.getElementById('setup-screen');
+    setupEl.style.display='flex';setupEl.style.opacity='0';
+    showSetupStep(0);
+    requestAnimationFrame(()=>{setupEl.style.opacity='1';});
+  }
+
+  // =====================================================
+  // EVENT LISTENERS
+  // =====================================================
+  document.getElementById('rules-btn-action').addEventListener('click',()=>{
+    document.getElementById('rules-screen').style.display='flex';
+    requestAnimationFrame(()=>document.getElementById('rules-screen').style.opacity='1');
+  });
+  document.getElementById('rules-back-btn').addEventListener('click',()=>{
+    document.getElementById('rules-screen').style.opacity='0';
+    setTimeout(()=>document.getElementById('rules-screen').style.display='none',300);
+  });
+  document.getElementById('btn-quit-main').addEventListener('click',()=>{document.getElementById('quit-modal').style.display='flex';});
+  document.getElementById('btn-quit-no').addEventListener('click',()=>{document.getElementById('quit-modal').style.display='none';});
+  document.getElementById('btn-quit-yes').addEventListener('click',()=>goToSetupFromGame());
+
+  // Setup wizard
+  document.getElementById('start-btn-action').addEventListener('click',()=>{
+    const setupEl=document.getElementById('setup-screen');
+    setupEl.style.display='flex';
+    requestAnimationFrame(()=>setupEl.style.opacity='1');
+    showSetupStep(0);
+  });
+  document.getElementById('setup-back-btn').addEventListener('click',()=>{
+    if(currentSetupStep===0){
+      document.getElementById('setup-screen').style.opacity='0';
+      setTimeout(()=>document.getElementById('setup-screen').style.display='none',300);
+    }else if(currentSetupStep===1){showSetupStep(0);}
+    else if(currentSetupStep===2){showSetupStep(1);}
+    else if(currentSetupStep===3){
+      if(tempSetup.mode==='AI')showSetupStep(2);
+      else showSetupStep(1);
+    }
+  });
+
+  // Board size selection
+  document.getElementById('btn-board-5x5').addEventListener('click',()=>{tempSetup.boardMode='5x5';showSetupStep(1);});
+  document.getElementById('btn-board-7x7').addEventListener('click',()=>{tempSetup.boardMode='7x7';showSetupStep(1);});
+
+  // Mode selection
+  document.getElementById('btn-mode-2p').addEventListener('click',()=>{tempSetup.mode='2P';showSetupStep(3);});
+  document.getElementById('btn-mode-ai').addEventListener('click',()=>{tempSetup.mode='AI';showSetupStep(2);});
+
+  // Color selection (AI only)
+  document.getElementById('btn-color-red').addEventListener('click',()=>{tempSetup.hColor=1;tempSetup.aColor=2;showSetupStep(3);});
+  document.getElementById('btn-color-blue').addEventListener('click',()=>{tempSetup.hColor=2;tempSetup.aColor=1;showSetupStep(3);});
+
+  // Final start
+  document.getElementById('final-start-btn').addEventListener('click',()=>startFreshGame());
+
+  // =====================================================
+  // WINDOW LOAD — restore saved game if any
+  // =====================================================
+  window.onload=function(){
+    initDOM();
+
+    // Try to restore a saved game - check both board modes
+    let restored=false;
+    for(const bm of ['5x5','7x7']){
+      const key=BOARD_CONFIGS[bm].storageKey;
+      const s=localStorage.getItem(key);
+      if(s){
+        try{
+          const saved=JSON.parse(s);
+          if(!saved.isGameOver){
+            G={...getInitialState(),...saved};
+            CFG=BOARD_CONFIGS[G.boardMode||bm];
+            _orangeCoordSet=null; // reset cache
+            restored=true;
+            break;
+          }
+        }catch(e){}
+      }
+    }
+
+    if(restored){
+      document.getElementById('start-screen').style.display='none';
+      document.getElementById('setup-screen').style.display='none';
+      document.getElementById('restart-screen').style.display='none';
+      document.getElementById('main-game').style.display='flex';
+      D.boardSizeBadge.textContent=CFG.gridSize===5?'⬛ 5×5':'🏆 7×7';
+      D.boardSizeBadge.style.display='block';
+      applyThemeUI();
+      buildBoard();
+      updateStrikeDisplay();
+      startGameLoops();
+      updateBoard();
+      if(!G.isGameOver){
+        if(G.hasRolled){
+          const p=G.currentPlayer;
+          const activeBtn=p===1?D.p1RollBtn:D.p2RollBtn;
+          activeBtn.textContent=`🎲 ${G.currentRoll}`;
+          D.p1RollBtn.disabled=(p!==1);
+          D.p2RollBtn.disabled=(p!==2)||(G.gameMode==='AI');
+          const p1C=G.theme==='blue-red'?'c-blue':'c-red';
+          const p2C=G.theme==='blue-red'?'c-red':'c-blue';
+          D.p1Dot.className=`turn-dot ${p===1?p1C:'dim'}`;
+          D.p1Label.className=`turn-label ${p===1?p1C:'dim'}`;
+          D.p2Dot.className=`turn-dot ${p===2?p2C:'dim'}`;
+          D.p2Label.className=`turn-label ${p===2?p2C:'dim'}`;
+          startTimer();
+          if(G.gameMode==='AI'&&p===2){
+            const movable=getMovable(G.currentRoll);
+            const vaultT=G.p2Tokens;
+            const vaultIdxs=vaultT.reduce((a,v,i)=>v===-1?[...a,i]:a,[]);
+            const is5x5r=CFG.gridSize===5;
+            const canRelease=(G.currentRoll===(is5x5r?4:6)||G.currentRoll===(is5x5r?8:12))&&vaultIdxs.length>0;
+            registerAction(()=>executeAIMove(p,G.currentRoll,movable,canRelease,vaultIdxs),700);
+          }
+        }else{
+          resetRoll();
+        }
+      }
+    }
+
+    document.getElementById('restart-btn-action').addEventListener('click',restartGame);
+  };
+  </script>
+
+  <!-- FIREBASE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDijakIOTks_Xx2p5-LJqWgfBjs8ExwNso",
+      authDomain: "shellkoin.firebaseapp.com",
+      projectId: "shellkoin",
+      storageBucket: "shellkoin.firebasestorage.app",
+      messagingSenderId: "1039505300978",
+      appId: "1:1039505300978:web:1ed0c61c6e09901a6f5f6b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let currentUsername = '';
+
+    // ── Helpers ──
+    function setAuthLoading(on) {
+      document.getElementById('auth-loading').style.display = on ? 'block' : 'none';
+      document.getElementById('auth-error').textContent = '';
+    }
+    function setAuthError(msg) {
+      document.getElementById('auth-error').textContent = msg;
+      document.getElementById('auth-loading').style.display = 'none';
+    }
+    function switchAuthTab(tab) {
+      document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('tab-login').className = 'auth-tab' + (tab === 'login' ? ' active' : '');
+      document.getElementById('tab-register').className = 'auth-tab' + (tab === 'register' ? ' active' : '');
+      document.getElementById('auth-error').textContent = '';
+    }
+
+    // ── Show/Hide screens ──
+    function showAuth() {
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('profile-btn').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'none';
+    }
+    function showGame() {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('profile-btn').style.display = 'block';
+      document.getElementById('profile-username-btn').textContent = currentUsername || 'Profile';
+      document.getElementById('start-screen').style.display = 'flex';
+    }
+
+    // ── Auth state ──
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        try {
+          const snap = await getDoc(doc(db, 'users', user.uid));
+          if (snap.exists()) currentUsername = snap.data().username || user.email;
+        } catch(e) { currentUsername = user.email; }
+        showGame();
+      } else {
+        currentUser = null;
+        showAuth();
+      }
+    });
+
+    // ── Login ──
+    async function doLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) { setAuthError('Email మరియు Password enter చేయండి'); return; }
+      setAuthLoading(true);
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) {
+        const msgs = {
+          'auth/user-not-found': 'ఈ email తో account లేదు',
+          'auth/wrong-password': 'Password తప్పు',
+          'auth/invalid-email': 'Email format తప్పు',
+          'auth/invalid-credential': 'Email లేదా Password తప్పు',
+          'auth/too-many-requests': 'చాలాసార్లు try చేశారు, కొంత సేపు wait చేయండి'
+        };
+        setAuthError(msgs[e.code] || 'Login fail: ' + e.message);
+      }
+    }
+
+    // ── Register ──
+    async function doRegister() {
+      const username = document.getElementById('reg-username').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      if (!username || !email || !password) { setAuthError('అన్ని fields fill చేయండి'); return; }
+      if (username.length < 3) { setAuthError('Username కనీసం 3 characters ఉండాలి'); return; }
+      if (password.length < 6) { setAuthError('Password కనీసం 6 characters ఉండాలి'); return; }
+      setAuthLoading(true);
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          username, email,
+          createdAt: new Date().toISOString(),
+          stats: { gamesPlayed: 0, wins: 0, losses: 0, kills: 0 }
+        });
+        currentUsername = username;
+      } catch (e) {
+        const msgs = {
+          'auth/email-already-in-use': 'ఈ email already registered',
+          'auth/invalid-email': 'Email format తప్పు',
+          'auth/weak-password': 'Password చాలా weak'
+        };
+        setAuthError(msgs[e.code] || 'Register fail: ' + e.message);
+      }
+    }
+
+    // ── Profile ──
+    async function openProfile() {
+      if (!currentUser) return;
+      try {
+        const snap = await getDoc(doc(db, 'users', currentUser.uid));
+        if (snap.exists()) {
+          const d = snap.data();
+          const s = d.stats || {};
+          document.getElementById('profile-name').textContent = d.username || '-';
+          document.getElementById('profile-email').textContent = d.email || '-';
+          document.getElementById('stat-games').textContent = s.gamesPlayed || 0;
+          document.getElementById('stat-wins').textContent = s.wins || 0;
+          document.getElementById('stat-losses').textContent = s.losses || 0;
+          document.getElementById('stat-kills').textContent = s.kills || 0;
+          const wr = s.gamesPlayed > 0 ? Math.round((s.wins / s.gamesPlayed) * 100) : 0;
+          document.getElementById('stat-winrate').textContent = wr + '%';
+        }
+      } catch(e) { console.log('Profile load error:', e); }
+      document.getElementById('profile-screen').style.display = 'flex';
+    }
+
+    // ── Save game result ──
+    window.saveGameResult = async function(won, kills) {
+      if (!currentUser) return;
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          'stats.gamesPlayed': increment(1),
+          'stats.wins': increment(won ? 1 : 0),
+          'stats.losses': increment(won ? 0 : 1),
+          'stats.kills': increment(kills || 0)
+        });
+      } catch(e) { console.log('Stats save error:', e); }
+    };
+
+    // ── Event listeners (no onclick needed) ──
+    document.getElementById('tab-login').addEventListener('click', () => switchAuthTab('login'));
+    document.getElementById('tab-register').addEventListener('click', () => switchAuthTab('register'));
+    document.getElementById('btn-login').addEventListener('click', doLogin);
+    document.getElementById('btn-register').addEventListener('click', doRegister);
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await signOut(auth);
+      document.getElementById('profile-screen').style.display = 'none';
+    });
+    document.getElementById('btn-close-profile').addEventListener('click', () => {
+      document.getElementById('profile-screen').style.display = 'none';
+    });
+    document.getElementById('profile-btn').addEventListener('click', openProfile);
+
+    // Enter key support
+    document.getElementById('login-password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+    document.getElementById('reg-password').addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+  </script>
 </body>
 </html>
